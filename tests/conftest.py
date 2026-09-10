@@ -41,7 +41,8 @@ async def _session_maker():
 
 @pytest_asyncio.fixture
 async def db_session(_session_maker) -> AsyncGenerator[AsyncSession, None]:
-    """A session for making test-side assertions, independent of the app's own sessions."""
+    """A session for making test-side assertions,
+     independent of the app's own sessions."""
     async with _session_maker() as session:
         yield session
 

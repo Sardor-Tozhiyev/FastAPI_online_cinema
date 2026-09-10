@@ -174,8 +174,10 @@ async def test_logout_revokes_refresh_token(
         json={"refresh_token": refresh_token})
     assert logout_response.status_code == 200
 
-    result = await db_session.execute(select(RefreshToken)
-                                      .where(RefreshToken.token == refresh_token))
+    result = await db_session.execute(
+        select(RefreshToken)
+        .where(RefreshToken.token == refresh_token)
+    )
     assert result.scalar_one_or_none() is None
 
     reuse_response = await client.post(

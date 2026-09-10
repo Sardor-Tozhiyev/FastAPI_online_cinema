@@ -65,9 +65,10 @@ async def test_activate_account_success(
         "/api/v1/accounts/register",
         json={"email": "activate@example.com", "password": strong_password},
     )
-    result = await db_session.execute(select(User)
-                                      .where(User.email == "activate@example.com")
-                                      )
+    result = await db_session.execute(
+        select(User)
+        .where(User.email == "activate@example.com")
+    )
     user = result.scalar_one()
     token_result = await db_session.execute(
         select(ActivationToken).where(ActivationToken.user_id == user.id)
@@ -106,9 +107,10 @@ async def test_resend_activation_issues_new_token(
         "/api/v1/accounts/register",
         json={"email": "resend@example.com", "password": strong_password},
     )
-    result = await db_session.execute(select(User)
-                                      .where(User.email == "resend@example.com")
-                                      )
+    result = await db_session.execute(
+        select(User)
+        .where(User.email == "resend@example.com")
+    )
     user = result.scalar_one()
     old_token_result = await db_session.execute(
         select(ActivationToken).where(ActivationToken.user_id == user.id)

@@ -108,9 +108,10 @@ async def test_password_reset_flow(
     )
     assert request_response.status_code == 200
 
-    result = await db_session.execute(select(User)
-                                      .where(User.email == "forgot@example.com")
-                                      )
+    result = await db_session.execute(
+        select(User)
+        .where(User.email == "forgot@example.com")
+    )
     user = result.scalar_one()
     token_result = await db_session.execute(
         select(PasswordResetToken).where(PasswordResetToken.user_id == user.id)
@@ -155,25 +156,21 @@ async def test_non_admin_cannot_change_user_group(
         "target@example.com",
         strong_password
     )
-    actor_login = await client.post(
-        "/api/v1/accounts/register",
-        json={
-            "email": "actor@example.com",
-            "password": strong_password
-        }
+    await _register_and_activate(
+        client,
+        db_session,
+        "actor@example.com",
+        strong_password,
     )
-    actor = await _register_and_activate(
-        client, db_session,
-        "actor2@example.com",
-        strong_password
-    )
+
     login = await client.post(
         "/api/v1/accounts/login",
         json={
-            "email": "actor2@example.com",
-            "password": strong_password
-        }
+            "email": "actor@example.com",
+            "password": strong_password,
+        },
     )
+
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     response = await client.patch(
