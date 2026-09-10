@@ -15,9 +15,7 @@ async def _delete_expired(model) -> int:
     async with AsyncSessionLocal() as session:
         result = cast(
             CursorResult,
-            await session.execute(
-                delete(model).where(model.expires_at < now)
-            ),
+            await session.execute(delete(model).where(model.expires_at < now)),
         )
         await session.commit()
         return result.rowcount or 0
