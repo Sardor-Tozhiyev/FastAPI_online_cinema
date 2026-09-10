@@ -5,7 +5,7 @@ from fastapi import Depends, status, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import selectinload
 
-from src.accounts.models import User
+from src.accounts.models import User, UserGroupEnum
 from src.accounts.security import decode_token
 from src.database import get_db
 
@@ -41,3 +41,21 @@ async def get_current_user(
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Account is not activated")
     return user
+
+
+def require_roles(*roles: UserGroupEnum):
+    """Dependency factory: returns 403 unless current user's group is one of `roles`."""
+
+    async def _checker(user: User = Depends(get_current_user)) -> User:
+        if user.group.name not in roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to perform this action.",
+            )
+        return user
+
+    return _checker
+
+
+require_moderator = require_roles(UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN)
+require_admin = require_roles(UserGroupEnum.ADMIN)
