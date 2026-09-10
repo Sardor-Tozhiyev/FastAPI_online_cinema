@@ -62,12 +62,12 @@ class User(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
-    password_reset_token: Mapped["PasswordResetToken | None"] = mapped_column(
+    password_reset_token: Mapped["PasswordResetToken | None"] = relationship(
         back_populates="user",
         uselist=False,
         cascade="all, delete-orphan",
     )
-    refresh_token: Mapped["RefreshToken"] = mapped_column(
+    refresh_token: Mapped["RefreshToken"] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
     )
@@ -91,6 +91,7 @@ class UserProfile(Base):
     )
     date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)
     info: Mapped[str | None] = mapped_column(Text, nullable=True)
+    user: Mapped["User"] = relationship(back_populates="profile")
 
 
 def _activation_expiry() -> datetime:

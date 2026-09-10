@@ -255,12 +255,21 @@ async def login(
     access_token = create_access_token(user.id)
     refresh_token_value = create_refresh_token(user.id)
 
-    db.add(
-        RefreshToken(
-            user_id=user.id,
-            token=refresh_token_value,
-        )
+    result = await db.execute(
+        select(RefreshToken).where(RefreshToken.user_id == user.id)
     )
+    stored_token = result.scalar_one_or_none()
+
+    if stored_token is not None:
+        stored_token.token = refresh_token_value
+    else:
+        db.add(
+            RefreshToken(
+                user_id=user.id,
+                token=refresh_token_value,
+            )
+        )
+
     await db.commit()
 
     return {

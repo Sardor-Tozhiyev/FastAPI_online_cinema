@@ -37,7 +37,7 @@ def validate_password_complexity(password: str) -> None:
     errors = [
         message
         for pattern, message in PASSWORD_RULES
-        if not pattern.match(password)
+        if not pattern.search(password)
     ]
     if errors:
         raise PasswordComplexityError(errors)
