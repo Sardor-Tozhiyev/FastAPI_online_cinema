@@ -403,6 +403,9 @@ async def request_password_reset(
     db.add(token)
     await db.commit()
 
+    if token.token is None:
+        raise ValueError("Password reset token was not generated")
+
     background_tasks.add_task(
         send_password_reset_email,
         user.email,

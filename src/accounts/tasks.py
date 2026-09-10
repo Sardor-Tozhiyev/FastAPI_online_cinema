@@ -1,6 +1,8 @@
 import asyncio
 from datetime import timezone, datetime
+from typing import cast
 
+from sqlalchemy.engine import CursorResult
 from sqlalchemy import delete
 from src.celery_app import celery_app
 
@@ -11,8 +13,11 @@ from src.database import AsyncSessionLocal
 async def _delete_expired(model) -> int:
     now = datetime.now(timezone.utc)
     async with AsyncSessionLocal() as session:
-        result = await session.execute(
-            delete(model).where(model.expires_at < now)
+        result = cast(
+            CursorResult,
+            await session.execute(
+                delete(model).where(model.expires_at < now)
+            ),
         )
         await session.commit()
         return result.rowcount or 0
