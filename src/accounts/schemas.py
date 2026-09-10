@@ -3,7 +3,10 @@ from datetime import datetime
 from pydantic import BaseModel, field_validator, EmailStr, ConfigDict
 
 from src.accounts.models import UserGroupEnum
-from src.accounts.security import validate_password_complexity, PasswordComplexityError
+from src.accounts.security import (
+    validate_password_complexity,
+    PasswordComplexityError
+)
 
 
 class PasswordFieldMixin(BaseModel):
@@ -56,6 +59,7 @@ class TokenPairResponse(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
 
 class AccessTokenResponse(BaseModel):
     access_token: str

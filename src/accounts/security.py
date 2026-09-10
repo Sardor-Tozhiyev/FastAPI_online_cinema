@@ -10,11 +10,15 @@ from src.config import settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 PASSWORD_RULES = (
-    (re.compile(r".{8,}"), "Password must be at least 8 characters long."),
-    (re.compile(r"[A-Z]"), "Password must contain at least one uppercase letter."),
-    (re.compile(r"[a-z]"), "Password must contain at least one lowercase letter."),
+    (re.compile(r".{8,}"),
+     "Password must be at least 8 characters long."),
+    (re.compile(r"[A-Z]"),
+     "Password must contain at least one uppercase letter."),
+    (re.compile(r"[a-z]"),
+     "Password must contain at least one lowercase letter."),
     (re.compile(r"\d"), "Password must be at least on digit."),
-    (re.compile(r"[^\w\s]"), "Password must contain at least one special character."),
+    (re.compile(r"[^\w\s]"),
+     "Password must contain at least one special character."),
 )
 
 
@@ -25,7 +29,10 @@ class PasswordComplexityError(ValueError):
 
 
 def validate_password_complexity(password: str) -> None:
-    errors = [message for pattern, message in PASSWORD_RULES if not pattern.match(password)]
+    errors = [
+        message for pattern,
+        message in PASSWORD_RULES if not pattern.match(password)
+    ]
     if errors:
         raise PasswordComplexityError(errors)
 
@@ -43,14 +50,18 @@ def _create_token(
         expires_delta: timedelta,
         token_type: Literal["access", "refresh"],
 ) -> str:
-     now = datetime.now(timezone.utc)
-     payload: dict[str, Any] = {
-         "sub": subject,
-         "type": token_type,
-         "iat": now,
-         "exp": now + expires_delta,
-     }
-     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    now = datetime.now(timezone.utc)
+    payload: dict[str, Any] = {
+        "sub": subject,
+        "type": token_type,
+        "iat": now,
+        "exp": now + expires_delta,
+    }
+    return jwt.encode(
+        payload,
+        settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM
+    )
 
 
 def create_access_token(user_id: int) -> str:
@@ -69,9 +80,14 @@ def create_refresh_token(user_id: int) -> str:
     )
 
 
-def decode_token(token:str) -> dict[str, Any]:
+def decode_token(token: str) -> dict[str, Any]:
     """Decode and validate a JWT. Raises jose.JWTError if invalid/expired."""
-    return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+    return jwt.decode(
+        token,
+        settings.SECRET_KEY,
+        algorithms=[settings.JWT_ALGORITHM]
+    )
+
 
 __all__ = [
     "hash_password",

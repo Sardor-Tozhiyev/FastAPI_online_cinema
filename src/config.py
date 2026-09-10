@@ -2,9 +2,15 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Central application configuration, populated from environment variables / .env"""
+    """Central application configuration,
+     populated from environment
+      variables / .env"""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
 
     # App
     APP_NAME: str = "Online Cinema"
@@ -12,7 +18,8 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@db:5432/online_cinema"
+    DATABASE_URL: str = ("postgresql+asyncpg://"
+                         "postgres:postgres@db:5432/online_cinema")
 
     # JWT
     JWT_SECRET_KEY: str = "change-me-in-prod"

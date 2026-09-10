@@ -1,10 +1,13 @@
-import asyncio
 from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine
+)
 from sqlalchemy.pool import StaticPool
 
 from src.accounts.bootstrap import seed_user_groups
@@ -24,7 +27,11 @@ async def _session_maker():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    session_maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+    session_maker = async_sessionmaker(
+        bind=engine,
+        class_=AsyncSession,
+        expire_on_commit=False
+    )
     async with session_maker() as session:
         await seed_user_groups(session)
 
