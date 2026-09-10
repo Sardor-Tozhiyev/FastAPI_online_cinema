@@ -6,7 +6,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
-    create_async_engine
+    create_async_engine,
 )
 from sqlalchemy.pool import StaticPool
 
@@ -28,9 +28,7 @@ async def _session_maker():
         await conn.run_sync(Base.metadata.create_all)
 
     session_maker = async_sessionmaker(
-        bind=engine,
-        class_=AsyncSession,
-        expire_on_commit=False
+        bind=engine, class_=AsyncSession, expire_on_commit=False
     )
     async with session_maker() as session:
         await seed_user_groups(session)
@@ -42,7 +40,7 @@ async def _session_maker():
 @pytest_asyncio.fixture
 async def db_session(_session_maker) -> AsyncGenerator[AsyncSession, None]:
     """A session for making test-side assertions,
-     independent of the app's own sessions."""
+    independent of the app's own sessions."""
     async with _session_maker() as session:
         yield session
 

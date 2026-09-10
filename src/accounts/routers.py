@@ -42,7 +42,6 @@ from src.accounts.security import (
 )
 from src.database import get_db
 
-
 router = APIRouter(prefix="/api/v1/accounts", tags=["accounts"])
 
 
@@ -90,9 +89,7 @@ async def register(
         )
 
     group_result = await db.execute(
-        select(UserGroup).where(
-            UserGroup.name == UserGroupEnum.USER
-        )
+        select(UserGroup).where(UserGroup.name == UserGroupEnum.USER)
     )
     user_group = group_result.scalar_one_or_none()
 
@@ -288,9 +285,7 @@ async def refresh_access_token(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     result = await db.execute(
-        select(RefreshToken).where(
-            RefreshToken.token == payload.refresh_token
-        )
+        select(RefreshToken).where(RefreshToken.token == payload.refresh_token)
     )
     stored_token = result.scalar_one_or_none()
 
@@ -333,9 +328,7 @@ async def logout(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     result = await db.execute(
-        select(RefreshToken).where(
-            RefreshToken.token == payload.refresh_token
-        )
+        select(RefreshToken).where(RefreshToken.token == payload.refresh_token)
     )
     stored_token = result.scalar_one_or_none()
 
@@ -502,9 +495,7 @@ async def change_user_group(
         )
 
     group_result = await db.execute(
-        select(UserGroup).where(
-            UserGroup.name == payload.group
-        )
+        select(UserGroup).where(UserGroup.name == payload.group)
     )
     group = group_result.scalar_one_or_none()
 

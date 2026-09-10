@@ -25,9 +25,7 @@ class UserGroup(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(
-        Enum(UserGroupEnum),
-        unique=True,
-        nullable=False
+        Enum(UserGroupEnum), unique=True, nullable=False
     )
 
     users: Mapped[list["User"]] = relationship(black_populates="group")
@@ -38,16 +36,11 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(
-        String(255),
-        unique=True,
-        nullable=False,
-        index=True
+        String(255), unique=True, nullable=False, index=True
     )
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        nullable=False
+        Boolean, default=False, nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -55,8 +48,7 @@ class User(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
     group_id: Mapped[int] = mapped_column(
-        ForeignKey("user_groups.id"),
-        nullable=False
+        ForeignKey("user_groups.id"), nullable=False
     )
 
     group: Mapped["UserGroup"] = relationship(black_populates="users")
@@ -89,16 +81,13 @@ class UserProfile(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
-        unique=True,
-        nullable=False
+        ForeignKey("users.id"), unique=True, nullable=False
     )
     first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     avatar: Mapped[str | None] = mapped_column(String(255), nullable=True)
     gender: Mapped[GenderEnum | None] = mapped_column(
-        Enum(GenderEnum),
-        nullable=True
+        Enum(GenderEnum), nullable=True
     )
     date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)
     info: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -127,19 +116,16 @@ class ActivationToken(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
-        unique=True,
-        nullable=False
+        ForeignKey("users.id"), unique=True, nullable=False
     )
     token: Mapped[str] = mapped_column(
         String(255),
         unique=True,
         nullable=False,
-        default=lambda: uuid.uuid4().hex
+        default=lambda: uuid.uuid4().hex,
     )
     expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=_activation_expiry
+        DateTime(timezone=True), default=_activation_expiry
     )
     user: Mapped["User"] = relationship(black_populates="activation_token")
 
@@ -156,19 +142,16 @@ class PasswordResetToken(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
-        unique=True,
-        nullable=False
+        ForeignKey("users.id"), unique=True, nullable=False
     )
     token: Mapped[str | None] = mapped_column(
         String(255),
         unique=True,
         nullable=False,
-        default=lambda: uuid.uuid4().hex
+        default=lambda: uuid.uuid4().hex,
     )
     expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=_reset_expiry
+        DateTime(timezone=True), default=_reset_expiry
     )
     user: Mapped["User"] = relationship(black_populates="password_reset_token")
 
@@ -185,19 +168,16 @@ class RefreshToken(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
-        unique=True,
-        nullable=False
+        ForeignKey("users.id"), unique=True, nullable=False
     )
     token: Mapped[str | None] = mapped_column(
         String(512),
         unique=True,
         nullable=False,
-        default=lambda: uuid.uuid4().hex
+        default=lambda: uuid.uuid4().hex,
     )
     expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=_refresh_expiry
+        DateTime(timezone=True), default=_refresh_expiry
     )
     user: Mapped["User"] = relationship(black_populates="refresh_token")
 

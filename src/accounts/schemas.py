@@ -5,7 +5,7 @@ from pydantic import BaseModel, field_validator, EmailStr, ConfigDict
 from src.accounts.models import UserGroupEnum
 from src.accounts.security import (
     validate_password_complexity,
-    PasswordComplexityError
+    PasswordComplexityError,
 )
 
 

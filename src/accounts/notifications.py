@@ -9,6 +9,7 @@ In this reference implementation,
 Replace the body of `send_email`
  with a real SMTP/SES integration when going to production.
 """
+
 import logging
 
 from src.config import settings
@@ -18,7 +19,7 @@ logger = logging.getLogger("online_cinema.notifications")
 
 def send_email(to: str, subject: str, body: str) -> None:
     """Send a single email. Currently, logs;
-     swap for real SMTP client in production."""
+    swap for real SMTP client in production."""
     logger.info("Sending email to=%s, subject=%s", to, subject)
     logger.debug("Email body: \n%s", body)
 
@@ -28,8 +29,10 @@ def build_activation_link(email: str, token: str) -> str:
 
 
 def build_password_reset_link(email: str, token: str) -> str:
-    return (f"{settings.FRONTEND_URL}/reset-password?email={email}"
-            f"&token={token}")
+    return (
+        f"{settings.FRONTEND_URL}/reset-password?email={email}"
+        f"&token={token}"
+    )
 
 
 def send_activation_email(email: str, token: str) -> None:
@@ -38,7 +41,7 @@ def send_activation_email(email: str, token: str) -> None:
         to=email,
         subject="Activate your Online Cinema account",
         body=f"Click the link to activate your account"
-             f" (valid for 24 hours): {link}",
+        f" (valid for 24 hours): {link}",
     )
 
 
@@ -52,13 +55,11 @@ def send_password_reset_email(email: str, token: str) -> None:
 
 
 def send_order_confirmation_email(
-        email: str,
-        order_id: int,
-        amount: str
+    email: str, order_id: int, amount: str
 ) -> None:
     send_email(
         to=email,
         subject=f"Payment confirmation — order #{order_id}",
         body=f"Your payment of {amount} for order "
-             f"#{order_id} was successful. Thank you!",
+        f"#{order_id} was successful. Thank you!",
     )
