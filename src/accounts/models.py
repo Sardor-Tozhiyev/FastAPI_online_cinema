@@ -28,7 +28,7 @@ class UserGroup(Base):
         Enum(UserGroupEnum), unique=True, nullable=False
     )
 
-    users: Mapped[list["User"]] = relationship(black_populates="group")
+    users: Mapped[list["User"]] = relationship(back_populates="group")
 
 
 class User(Base):
@@ -51,24 +51,24 @@ class User(Base):
         ForeignKey("user_groups.id"), nullable=False
     )
 
-    group: Mapped["UserGroup"] = relationship(black_populates="users")
+    group: Mapped["UserGroup"] = relationship(back_populates="users")
     profile: Mapped["UserProfile | None"] = relationship(
-        black_populates="user",
+        back_populates="user",
         uselist=False,
         cascade="all, delete-orphan",
     )
     activation_token: Mapped["ActivationToken | None"] = relationship(
-        black_populates="user",
+        back_populates="user",
         uselist=False,
         cascade="all, delete-orphan",
     )
     password_reset_token: Mapped["PasswordResetToken | None"] = mapped_column(
-        black_populates="user",
+        back_populates="user",
         uselist=False,
         cascade="all, delete-orphan",
     )
     refresh_token: Mapped["RefreshToken"] = mapped_column(
-        black_populates="user",
+        back_populates="user",
         cascade="all, delete-orphan",
     )
 
@@ -127,7 +127,7 @@ class ActivationToken(Base):
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_activation_expiry
     )
-    user: Mapped["User"] = relationship(black_populates="activation_token")
+    user: Mapped["User"] = relationship(back_populates="activation_token")
 
     @property
     def is_expired(self) -> bool:
@@ -153,7 +153,7 @@ class PasswordResetToken(Base):
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_reset_expiry
     )
-    user: Mapped["User"] = relationship(black_populates="password_reset_token")
+    user: Mapped["User"] = relationship(back_populates="password_reset_token")
 
     @property
     def is_expired(self) -> bool:
@@ -179,7 +179,7 @@ class RefreshToken(Base):
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_refresh_expiry
     )
-    user: Mapped["User"] = relationship(black_populates="refresh_token")
+    user: Mapped["User"] = relationship(back_populates="refresh_token")
 
     @property
     def is_expired(self) -> bool:
