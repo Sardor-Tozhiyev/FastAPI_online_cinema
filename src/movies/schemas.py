@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TypeVar, Generic, List
+from typing import TypeVar, Generic, List, Any
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
@@ -104,7 +104,7 @@ class MovieListItemResponse(BaseModel):
 
     @field_validator("price", mode="before")
     @classmethod
-    def _coerce_price(cls, value: object) -> object:
+    def _coerce_price(cls, value: Any) -> Any:
         return float(value) if value is not None else value
 
 

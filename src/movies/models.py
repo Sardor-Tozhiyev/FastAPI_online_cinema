@@ -1,7 +1,16 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String, ForeignKey, UniqueConstraint, Integer, Text, Numeric, Boolean, DateTime
+from sqlalchemy import (
+    String,
+    ForeignKey,
+    UniqueConstraint,
+    Integer,
+    Text,
+    Numeric,
+    Boolean,
+    DateTime,
+)
 from sqlalchemy.dialects.postgresql.base import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -12,14 +21,9 @@ class Genre(Base):
     __tablename__ = "genres"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(
-        String(255),
-        unique=True,
-        nullable=False
-    )
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     movies: Mapped[list["Movie"]] = relationship(
-        secondary="movies_genres",
-        back_populates="genres"
+        secondary="movies_genres", back_populates="genres"
     )
 
 
@@ -27,14 +31,9 @@ class Star(Base):
     __tablename__ = "stars"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(
-        String(255),
-        unique=True,
-        nullable=False
-    )
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     movies: Mapped[list["Movie"]] = relationship(
-        secondary="movies_stars",
-        back_populates="stars"
+        secondary="movies_stars", back_populates="stars"
     )
 
 
@@ -42,36 +41,30 @@ class Director(Base):
     __tablename__ = "directors"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(
-        String(255),
-        unique=True,
-        nullable=False
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    movies: Mapped[list["Movie"]] = relationship(
+        back_populates="certification"
     )
-    movies: Mapped[list["Movie"]] = relationship(back_populates="certification")
 
 
 class Certification(Base):
     __tablename__ = "certifications"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(
-        String(50),
-        unique=True,
-        nullable=False
+    name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    movies: Mapped[list["Movie"]] = relationship(
+        back_populates="certification"
     )
-    movies: Mapped[list["Movie"]] = relationship(back_populates="certification")
 
 
 class MovieGenre(Base):
     __tablename__ = "movie_genres"
 
-    movie_id:Mapped[int] = mapped_column(
-        ForeignKey("movies.id", ondelete="CASCADE"),
-        primary_key=True
+    movie_id: Mapped[int] = mapped_column(
+        ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True
     )
     genre_id: Mapped[int] = mapped_column(
-        ForeignKey("genres.id", ondelete="CASCADE"),
-        primary_key=True
+        ForeignKey("genres.id", ondelete="CASCADE"), primary_key=True
     )
 
 
@@ -79,12 +72,10 @@ class MovieDirector(Base):
     __tablename__ = "movie_directors"
 
     movie_id: Mapped[int] = mapped_column(
-        ForeignKey("movies.id", ondelete="CASCADE"),
-        primary_key=True
+        ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True
     )
     director_id: Mapped[int] = mapped_column(
-        ForeignKey("directors.id", ondelete="CASCADE"),
-        primary_key=True
+        ForeignKey("directors.id", ondelete="CASCADE"), primary_key=True
     )
 
 
@@ -92,12 +83,10 @@ class MovieStar(Base):
     __tablename__ = "movie_stars"
 
     movie_id: Mapped[int] = mapped_column(
-        ForeignKey("movies.id", ondelete="CASCADE"),
-        primary_key=True
+        ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True
     )
     star_id: Mapped[int] = mapped_column(
-        ForeignKey("stars.id", ondelete="CASCADE"),
-        primary_key=True
+        ForeignKey("stars.id", ondelete="CASCADE"), primary_key=True
     )
 
 
@@ -105,10 +94,7 @@ class Movie(Base):
     __tablename__ = "movies"
     __table_args__ = (
         UniqueConstraint(
-            "name",
-            "year",
-            "time",
-            name="uq_movies_name_year_time"
+            "name", "year", "time", name="uq_movies_name_year_time"
         ),
     )
 
@@ -119,7 +105,7 @@ class Movie(Base):
         nullable=False,
         default=lambda: str(uuid.uuid4()),
     )
-    name: Mapped[str] = mapped_column(String(255),nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     time: Mapped[int] = mapped_column(Integer, nullable=False)
     imdb: Mapped[float] = mapped_column(nullable=False)
@@ -129,8 +115,7 @@ class Movie(Base):
     description: Mapped[str] = mapped_column(Text, nullable=False)
     price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     certification_id: Mapped[int] = mapped_column(
-        ForeignKey("certifications.id"),
-        nullable=False
+        ForeignKey("certifications.id"), nullable=False
     )
     certification: Mapped["Certification"] = relationship(
         back_populates="movies",
@@ -171,20 +156,16 @@ class MovieReaction(Base):
     __tablename__ = "movie_reactions"
     __table_args__ = (
         UniqueConstraint(
-            "user_id",
-            "movie_id",
-            name="uq_movie_reactions_user_movie"
+            "user_id", "movie_id", name="uq_movie_reactions_user_movie"
         ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     movie_id: Mapped[int] = mapped_column(
-        ForeignKey("movies.id", ondelete="CASCADE"),
-        nullable=False
+        ForeignKey("movies.id", ondelete="CASCADE"), nullable=False
     )
     is_like: Mapped[bool] = mapped_column(Boolean, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -200,20 +181,16 @@ class MovieRating(Base):
     __tablename__ = "movie_ratings"
     __table_args__ = (
         UniqueConstraint(
-            "user_id",
-            "movie_id",
-            name="uq_movie_ratings_user_movie"
+            "user_id", "movie_id", name="uq_movie_ratings_user_movie"
         ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     movie_id: Mapped[int] = mapped_column(
-        ForeignKey("movies.id", ondelete="CASCADE"),
-        nullable=False
+        ForeignKey("movies.id", ondelete="CASCADE"), nullable=False
     )
     rating: Mapped[float] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -232,20 +209,16 @@ class Favorite(Base):
     __tablename__ = "favorites"
     __table_args__ = (
         UniqueConstraint(
-            "user_id",
-            "movie_id",
-            name="uq_favorites_user_movie"
+            "user_id", "movie_id", name="uq_favorites_user_movie"
         ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     movie_id: Mapped[int] = mapped_column(
-        ForeignKey("movies.id", ondelete="CASCADE"),
-        nullable=False
+        ForeignKey("movies.id", ondelete="CASCADE"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -259,16 +232,13 @@ class Comment(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     movie_id: Mapped[int] = mapped_column(
-        ForeignKey("movies.id", ondelete="CASCADE"),
-        nullable=False
+        ForeignKey("movies.id", ondelete="CASCADE"), nullable=False
     )
     parent_id: Mapped[int] = mapped_column(
-        ForeignKey("comments.id", ondelete="CASCADE"),
-        nullable=False
+        ForeignKey("comments.id", ondelete="CASCADE"), nullable=False
     )
     text: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -294,14 +264,11 @@ class CommentLike(Base):
     __tablename__ = "comment_likes"
     __table_args__ = (
         UniqueConstraint(
-            "user_id",
-            "comment_id",
-            name="uq_comment_likes_user_comment"
+            "user_id", "comment_id", name="uq_comment_likes_user_comment"
         ),
     )
     comment_id: Mapped[int] = mapped_column(
-        ForeignKey("comments.id", ondelete="CASCADE"),
-        nullable=False
+        ForeignKey("comments.id", ondelete="CASCADE"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
