@@ -23,7 +23,7 @@ class Genre(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     movies: Mapped[list["Movie"]] = relationship(
-        secondary="movies_genres", back_populates="genres"
+        secondary="movie_genres", back_populates="genres"
     )
 
 
@@ -33,7 +33,7 @@ class Star(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     movies: Mapped[list["Movie"]] = relationship(
-        secondary="movies_stars", back_populates="stars"
+        secondary="movie_stars", back_populates="stars"
     )
 
 
@@ -43,7 +43,8 @@ class Director(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     movies: Mapped[list["Movie"]] = relationship(
-        back_populates="certification"
+        secondary="movie_directors",
+        back_populates="directors"
     )
 
 
@@ -121,11 +122,11 @@ class Movie(Base):
         back_populates="movies",
     )
     genres: Mapped[list["Genre"]] = relationship(
-        secondary="movies_genres",
+        secondary="movie_genres",
         back_populates="movies",
     )
     directors: Mapped[list["Director"]] = relationship(
-        secondary="movies_directors",
+        secondary="movie_directors",
         back_populates="movies",
     )
     stars: Mapped[list["Star"]] = relationship(
@@ -238,7 +239,7 @@ class Comment(Base):
         ForeignKey("movies.id", ondelete="CASCADE"), nullable=False
     )
     parent_id: Mapped[int] = mapped_column(
-        ForeignKey("comments.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("comments.id", ondelete="CASCADE"), nullable=True
     )
     text: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

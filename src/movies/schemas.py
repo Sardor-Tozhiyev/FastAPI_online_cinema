@@ -108,19 +108,47 @@ class MovieListItemResponse(BaseModel):
         return float(value) if value is not None else value
 
 
+class MovieDetailResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    uuid: str
+    name: str
+    year: int
+    time: int
+    imdb: float
+    votes: int
+    meta_score: float | None
+    gross: float | None
+    description: str
+    price: float
+    certification: CertificationResponse
+    genres: list[GenreResponse] = Field(default_factory=list)
+    directors: list[DirectorResponse] = Field(default_factory=list)
+    stars: list[StarResponse] = Field(default_factory=list)
+    likes_count: int = 0
+    dislikes_count: int = 0
+    average_rating: float | None = None
+    ratings_count: int = 0
+
+    @field_validator("price", mode="before")
+    @classmethod
+    def _coerce_price(cls, value: Any) -> Any:
+        return float(value) if value is not None else value
+
+
 class ReactionRequest(BaseModel):
     is_like: bool
 
 
 class RatingRequest(BaseModel):
-    rating: int = Field(ge=1, le=10)
+    rating: float = Field(ge=1, le=10)
 
 
 class RatingResponse(BaseModel):
     movie_id: int
     average_rating: float | None
     rating_count: int
-    user_rating: int | None
+    user_rating: float | None
 
 
 class CommentCreateRequest(BaseModel):

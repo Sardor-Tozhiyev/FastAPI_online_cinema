@@ -7,6 +7,9 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+celerybeat-schedule
+celerybeat-schedule-shm
+celerybeat-schedule-wal
 .Python
 build/
 develop-eggs/

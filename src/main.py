@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from src.movies.routers import routers as movie_routers
 from src.accounts.bootstrap import seed_user_groups
 from src.accounts.routers import router as accounts_router
 from src.config import settings
@@ -28,6 +29,9 @@ app = FastAPI(
 )
 
 app.include_router(accounts_router)
+
+for router in movie_routers:
+    app.include_router(router)
 
 
 @app.get("/health", tags=["health"], summary="Liveness probe")
