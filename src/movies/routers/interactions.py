@@ -50,15 +50,10 @@ async def list_favorites(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     favorite_result = await db.execute(
-        select(Favorite.movie_id).where(
-            Favorite.user_id == current_user.id
-        )
+        select(Favorite.movie_id).where(Favorite.user_id == current_user.id)
     )
 
-    favorite_ids = [
-        row[0]
-        for row in favorite_result.all()
-    ]
+    favorite_ids = [row[0] for row in favorite_result.all()]
 
     if not favorite_ids:
         return {
@@ -193,9 +188,7 @@ async def rate_movie(
     return {
         "movie_id": movie_id,
         "average_rating": (
-            round(float(avg_rating), 2)
-            if avg_rating is not None
-            else None
+            round(float(avg_rating), 2) if avg_rating is not None else None
         ),
         "ratings_count": count or 0,
         "user_rating": payload.rating,

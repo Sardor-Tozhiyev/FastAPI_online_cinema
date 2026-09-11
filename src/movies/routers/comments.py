@@ -85,13 +85,11 @@ async def list_comments(
     )
 
     likes_by_id = {
-        comment_id: count
-        for comment_id, count in likes_result.all()
+        comment_id: count for comment_id, count in likes_result.all()
     }
 
     return [
-        _comment_to_response(comment, likes_by_id)
-        for comment in top_level
+        _comment_to_response(comment, likes_by_id) for comment in top_level
     ]
 
 

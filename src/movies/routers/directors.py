@@ -21,9 +21,7 @@ router = APIRouter(prefix="/api/v1/movies", tags=["directors"])
 async def list_directors(
     db: AsyncSession = Depends(get_db),
 ) -> list[Director]:
-    result = await db.execute(
-        select(Director).order_by(Director.name)
-    )
+    result = await db.execute(select(Director).order_by(Director.name))
 
     return list(result.scalars().all())
 

@@ -43,8 +43,7 @@ class Director(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     movies: Mapped[list["Movie"]] = relationship(
-        secondary="movie_directors",
-        back_populates="directors"
+        secondary="movie_directors", back_populates="directors"
     )
 
 
@@ -270,12 +269,10 @@ class CommentLike(Base):
     )
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     comment_id: Mapped[int] = mapped_column(
-        ForeignKey("comments.id", ondelete="CASCADE"),
-        nullable=False
+        ForeignKey("comments.id", ondelete="CASCADE"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

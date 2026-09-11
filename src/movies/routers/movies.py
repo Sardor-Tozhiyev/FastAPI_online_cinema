@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.sql.elements import ColumnElement
 
 from src.accounts.dependencies import require_moderator
 from src.accounts.models import User
@@ -18,7 +19,9 @@ from src.movies.models import (
     MovieDirector,
     MovieGenre,
     MovieStar,
-    Star, MovieReaction, MovieRating,
+    Star,
+    MovieReaction,
+    MovieRating,
 )
 from src.movies.schemas import (
     MovieCreateRequest,
@@ -135,9 +138,7 @@ async def _movie_detail_payload(
         "likes_count": likes_count,
         "dislikes_count": dislikes_count,
         "average_rating": (
-            round(float(avg_rating), 2)
-            if avg_rating is not None
-            else None
+            round(float(avg_rating), 2) if avg_rating is not None else None
         ),
         "ratings_count": ratings_count or 0,
     }
@@ -152,9 +153,7 @@ async def _resolve_related(
     if not ids:
         return []
 
-    result = await db.execute(
-        select(model).where(model.id.in_(ids))
-    )
+    result = await db.execute(select(model).where(model.id.in_(ids)))
 
     found = list(result.scalars().all())
 
@@ -184,7 +183,7 @@ async def _list_movies(
     movie_ids: list[int] | None = None,
 ) -> dict:
     query = select(Movie.id).distinct()
-    filters = []
+    filters: list[ColumnElement[bool]] = []
 
     if movie_ids is not None:
         filters.append(Movie.id.in_(movie_ids))
@@ -243,9 +242,7 @@ async def _list_movies(
     if filters:
         query = query.where(*filters)
 
-    count_query = select(func.count()).select_from(
-        query.subquery()
-    )
+    count_query = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_query)).scalar_one()
 
     sort_column = {
@@ -259,24 +256,18 @@ async def _list_movies(
     )
 
     order_clause = (
-        sort_column.asc()
-        if order == SortOrder.asc
-        else sort_column.desc()
+        sort_column.asc() if order == SortOrder.asc else sort_column.desc()
     )
 
     offset = (page - 1) * per_page
 
     id_query = (
-        query
-        .order_by(order_clause, Movie.id.desc())
+        query.order_by(order_clause, Movie.id.desc())
         .offset(offset)
         .limit(per_page)
     )
 
-    ordered_ids = [
-        row[0]
-        for row in (await db.execute(id_query)).all()
-    ]
+    ordered_ids = [row[0] for row in (await db.execute(id_query)).all()]
 
     if not ordered_ids:
         movies = []
@@ -287,10 +278,7 @@ async def _list_movies(
             .where(Movie.id.in_(ordered_ids))
         )
 
-        movies_by_id = {
-            movie.id: movie
-            for movie in result.scalars().all()
-        }
+        movies_by_id = {movie.id: movie for movie in result.scalars().all()}
 
         movies = [
             movies_by_id[movie_id]
@@ -390,8 +378,7 @@ async def create_movie(
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             detail=(
-                "A movie with this name, year and duration "
-                "already exists."
+                "A movie with this name, year and duration " "already exists."
             ),
         )
 

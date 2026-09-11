@@ -21,9 +21,7 @@ router = APIRouter(prefix="/api/v1/movies", tags=["stars"])
 async def list_stars(
     db: AsyncSession = Depends(get_db),
 ) -> list[Star]:
-    result = await db.execute(
-        select(Star).order_by(Star.name)
-    )
+    result = await db.execute(select(Star).order_by(Star.name))
 
     return list(result.scalars().all())
 
@@ -39,9 +37,7 @@ async def create_star(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_moderator),
 ) -> Star:
-    existing = await db.execute(
-        select(Star).where(Star.name == payload.name)
-    )
+    existing = await db.execute(select(Star).where(Star.name == payload.name))
 
     if existing.scalar_one_or_none() is not None:
         raise HTTPException(
