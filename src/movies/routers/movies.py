@@ -2,10 +2,9 @@ from enum import Enum
 from math import ceil
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy.sql.elements import ColumnElement
 
 from src.accounts.dependencies import require_moderator
 from src.accounts.models import User
@@ -18,21 +17,25 @@ from src.movies.models import (
     Movie,
     MovieDirector,
     MovieGenre,
+    MovieRating,
+    MovieReaction,
     MovieStar,
     Star,
-    MovieReaction,
-    MovieRating,
 )
 from src.movies.schemas import (
+    CertificationResponse,
     MovieCreateRequest,
     MovieDetailResponse,
     MovieListItemResponse,
     MovieUpdateRequest,
+    NamedEntityRequest,
     PaginatedResponse,
 )
 
-
 router = APIRouter(prefix="/api/v1/movies", tags=["movies"])
+
+
+# --- Sorting / pagination helpers ---------------------------------------------
 
 
 class SortField(str, Enum):
@@ -47,25 +50,116 @@ class SortOrder(str, Enum):
     desc = "desc"
 
 
-async def _get_movie_or_404(
-    db: AsyncSession,
-    movie_id: int,
-) -> Movie:
-    movie = await db.get(Movie, movie_id)
+def _paginate(page: int, per_page: int) -> tuple[int, int]:
+    offset = (page - 1) * per_page
+    return offset, per_page
 
-    if movie is None:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            detail="Movie not found.",
+
+async def _list_movies(
+    db: AsyncSession,
+    *,
+    page: int,
+    per_page: int,
+    search: str | None = None,
+    year: int | None = None,
+    year_from: int | None = None,
+    year_to: int | None = None,
+    imdb_min: float | None = None,
+    imdb_max: float | None = None,
+    genre_id: int | None = None,
+    sort_by: SortField | None = None,
+    order: SortOrder = SortOrder.desc,
+    movie_ids: list[int] | None = None,
+) -> dict:
+    """Shared catalog query used by the main listing, genre listing, and
+    favorites listing (routers.genres / routers.interactions import this)."""
+
+    base_query = select(Movie.id).distinct()
+    filters = []
+
+    if movie_ids is not None:
+        filters.append(Movie.id.in_(movie_ids))
+    if year is not None:
+        filters.append(Movie.year == year)
+    if year_from is not None:
+        filters.append(Movie.year >= year_from)
+    if year_to is not None:
+        filters.append(Movie.year <= year_to)
+    if imdb_min is not None:
+        filters.append(Movie.imdb >= imdb_min)
+    if imdb_max is not None:
+        filters.append(Movie.imdb <= imdb_max)
+
+    if genre_id is not None:
+        base_query = base_query.join(
+            MovieGenre, MovieGenre.movie_id == Movie.id
+        ).where(MovieGenre.genre_id == genre_id)
+
+    if search:
+        pattern = f"%{search}%"
+        base_query = (
+            base_query.outerjoin(
+                MovieDirector, MovieDirector.movie_id == Movie.id
+            )
+            .outerjoin(Director, Director.id == MovieDirector.director_id)
+            .outerjoin(MovieStar, MovieStar.movie_id == Movie.id)
+            .outerjoin(Star, Star.id == MovieStar.star_id)
+            .where(
+                or_(
+                    Movie.name.ilike(pattern),
+                    Movie.description.ilike(pattern),
+                    Director.name.ilike(pattern),
+                    Star.name.ilike(pattern),
+                )
+            )
         )
 
-    return movie
+    if filters:
+        base_query = base_query.where(and_(*filters))
+
+    count_query = select(func.count()).select_from(base_query.subquery())
+    total = (await db.execute(count_query)).scalar_one()
+
+    sort_column = {
+        SortField.price: Movie.price,
+        SortField.year: Movie.year,
+        SortField.popularity: Movie.votes,
+        SortField.imdb: Movie.imdb,
+    }.get(sort_by or SortField.year, Movie.year)
+
+    order_clause = (
+        sort_column.asc() if order == SortOrder.asc else sort_column.desc()
+    )
+
+    offset, limit = _paginate(page, per_page)
+    id_query = (
+        base_query.order_by(order_clause, Movie.id.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    ordered_ids = [row[0] for row in (await db.execute(id_query)).all()]
+
+    if not ordered_ids:
+        movies: list[Movie] = []
+    else:
+        result = await db.execute(
+            select(Movie)
+            .options(selectinload(Movie.genres))
+            .where(Movie.id.in_(ordered_ids))
+        )
+        by_id = {m.id: m for m in result.scalars().all()}
+        movies = [by_id[mid] for mid in ordered_ids if mid in by_id]
+
+    return {
+        "items": movies,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "pages": ceil(total / per_page) if per_page else 0,
+    }
 
 
-async def _get_movie_detail_or_404(
-    db: AsyncSession,
-    movie_id: int,
-) -> Movie:
+async def _get_movie_or_404(db: AsyncSession, movie_id: int) -> Movie:
     result = await db.execute(
         select(Movie)
         .options(
@@ -76,34 +170,22 @@ async def _get_movie_detail_or_404(
         )
         .where(Movie.id == movie_id)
     )
-
     movie = result.scalar_one_or_none()
-
     if movie is None:
         raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            detail="Movie not found.",
+            status.HTTP_404_NOT_FOUND, detail="Movie not found."
         )
-
     return movie
 
 
-async def _movie_detail_payload(
-    db: AsyncSession,
-    movie: Movie,
-) -> dict:
+async def _movie_detail_payload(db: AsyncSession, movie: Movie) -> dict:
     likes_result = await db.execute(
-        select(
-            MovieReaction.is_like,
-            func.count(),
-        )
+        select(MovieReaction.is_like, func.count())
         .where(MovieReaction.movie_id == movie.id)
         .group_by(MovieReaction.is_like)
     )
-
     likes_count = 0
     dislikes_count = 0
-
     for is_like, count in likes_result.all():
         if is_like:
             likes_count = count
@@ -111,12 +193,10 @@ async def _movie_detail_payload(
             dislikes_count = count
 
     rating_result = await db.execute(
-        select(
-            func.avg(MovieRating.rating),
-            func.count(MovieRating.id),
-        ).where(MovieRating.movie_id == movie.id)
+        select(func.avg(MovieRating.rating), func.count(MovieRating.id)).where(
+            MovieRating.movie_id == movie.id
+        )
     )
-
     avg_rating, ratings_count = rating_result.one()
 
     return {
@@ -145,160 +225,75 @@ async def _movie_detail_payload(
 
 
 async def _resolve_related(
-    db: AsyncSession,
-    model,
-    ids: list[int],
-    label: str,
+    db: AsyncSession, model, ids: list[int], label: str
 ) -> list:
     if not ids:
         return []
-
     result = await db.execute(select(model).where(model.id.in_(ids)))
-
     found = list(result.scalars().all())
-
     if len(found) != len(set(ids)):
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             detail=f"One or more {label} ids do not exist.",
         )
-
     return found
 
 
-async def _list_movies(
-    db: AsyncSession,
-    *,
-    page: int,
-    per_page: int,
-    search: str | None = None,
-    year: int | None = None,
-    year_from: int | None = None,
-    year_to: int | None = None,
-    imdb_min: float | None = None,
-    imdb_max: float | None = None,
-    genre_id: int | None = None,
-    sort_by: SortField | None = None,
-    order: SortOrder = SortOrder.desc,
-    movie_ids: list[int] | None = None,
-) -> dict:
-    query = select(Movie.id).distinct()
-    filters: list[ColumnElement[bool]] = []
+# --- Certifications ------------------------------------------------------------
 
-    if movie_ids is not None:
-        filters.append(Movie.id.in_(movie_ids))
 
-    if year is not None:
-        filters.append(Movie.year == year)
+@router.get(
+    "/certifications",
+    response_model=list[CertificationResponse],
+    summary="List certifications",
+)
+async def list_certifications(
+    db: AsyncSession = Depends(get_db),
+) -> list[Certification]:
+    result = await db.execute(
+        select(Certification).order_by(Certification.name)
+    )
+    return list(result.scalars().all())
 
-    if year_from is not None:
-        filters.append(Movie.year >= year_from)
 
-    if year_to is not None:
-        filters.append(Movie.year <= year_to)
-
-    if imdb_min is not None:
-        filters.append(Movie.imdb >= imdb_min)
-
-    if imdb_max is not None:
-        filters.append(Movie.imdb <= imdb_max)
-
-    if genre_id is not None:
-        query = query.join(
-            MovieGenre,
-            MovieGenre.movie_id == Movie.id,
-        ).where(MovieGenre.genre_id == genre_id)
-
-    if search:
-        pattern = f"%{search}%"
-
-        query = (
-            query.outerjoin(
-                MovieDirector,
-                MovieDirector.movie_id == Movie.id,
-            )
-            .outerjoin(
-                Director,
-                Director.id == MovieDirector.director_id,
-            )
-            .outerjoin(
-                MovieStar,
-                MovieStar.movie_id == Movie.id,
-            )
-            .outerjoin(
-                Star,
-                Star.id == MovieStar.star_id,
-            )
-            .where(
-                or_(
-                    Movie.name.ilike(pattern),
-                    Movie.description.ilike(pattern),
-                    Director.name.ilike(pattern),
-                    Star.name.ilike(pattern),
-                )
-            )
+@router.post(
+    "/certifications",
+    response_model=CertificationResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="[Moderator] Create a certification",
+)
+async def create_certification(
+    payload: NamedEntityRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_moderator),
+) -> Certification:
+    existing = await db.execute(
+        select(Certification).where(Certification.name == payload.name)
+    )
+    if existing.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, detail="Certification already exists."
         )
+    certification = Certification(name=payload.name)
+    db.add(certification)
+    await db.commit()
+    await db.refresh(certification)
+    return certification
 
-    if filters:
-        query = query.where(*filters)
 
-    count_query = select(func.count()).select_from(query.subquery())
-    total = (await db.execute(count_query)).scalar_one()
-
-    sort_column = {
-        SortField.price: Movie.price,
-        SortField.year: Movie.year,
-        SortField.popularity: Movie.votes,
-        SortField.imdb: Movie.imdb,
-    }.get(
-        sort_by or SortField.year,
-        Movie.year,
-    )
-
-    order_clause = (
-        sort_column.asc() if order == SortOrder.asc else sort_column.desc()
-    )
-
-    offset = (page - 1) * per_page
-
-    id_query = (
-        query.order_by(order_clause, Movie.id.desc())
-        .offset(offset)
-        .limit(per_page)
-    )
-
-    ordered_ids = [row[0] for row in (await db.execute(id_query)).all()]
-
-    if not ordered_ids:
-        movies = []
-    else:
-        result = await db.execute(
-            select(Movie)
-            .options(selectinload(Movie.genres))
-            .where(Movie.id.in_(ordered_ids))
-        )
-
-        movies_by_id = {movie.id: movie for movie in result.scalars().all()}
-
-        movies = [
-            movies_by_id[movie_id]
-            for movie_id in ordered_ids
-            if movie_id in movies_by_id
-        ]
-
-    return {
-        "items": movies,
-        "total": total,
-        "page": page,
-        "per_page": per_page,
-        "pages": ceil(total / per_page),
-    }
+# --- Movie catalog ---------------------------------------------------------------
 
 
 @router.get(
     "",
     response_model=PaginatedResponse[MovieListItemResponse],
     summary="Browse the movie catalog",
+    description=(
+        "Paginated movie catalog with optional `search` (title, description, "
+        "actor, director), filtering by `year`/`year_from`/`year_to`/"
+        "`imdb_min`/`imdb_max`/`genre_id`, and sorting by `sort_by` "
+        "(price, year, popularity, imdb) with `order` (asc/desc)."
+    ),
 )
 async def list_movies(
     page: int = Query(default=1, ge=1),
@@ -336,11 +331,9 @@ async def list_movies(
     summary="Get full details of a single movie",
 )
 async def get_movie(
-    movie_id: int,
-    db: AsyncSession = Depends(get_db),
+    movie_id: int, db: AsyncSession = Depends(get_db)
 ) -> dict:
-    movie = await _get_movie_detail_or_404(db, movie_id)
-
+    movie = await _get_movie_or_404(db, movie_id)
     return await _movie_detail_payload(db, movie)
 
 
@@ -355,15 +348,10 @@ async def create_movie(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_moderator),
 ) -> dict:
-    certification = await db.get(
-        Certification,
-        payload.certification_id,
-    )
-
+    certification = await db.get(Certification, payload.certification_id)
     if certification is None:
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail="Certification not found.",
+            status.HTTP_400_BAD_REQUEST, detail="Certification not found."
         )
 
     duplicate = await db.execute(
@@ -373,33 +361,17 @@ async def create_movie(
             Movie.time == payload.time,
         )
     )
-
     if duplicate.scalar_one_or_none() is not None:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            detail=(
-                "A movie with this name, year and duration " "already exists."
-            ),
+            detail="A movie with this name, year and duration already exists.",
         )
 
-    genres = await _resolve_related(
-        db,
-        Genre,
-        payload.genre_ids,
-        "genre",
-    )
+    genres = await _resolve_related(db, Genre, payload.genre_ids, "genre")
     directors = await _resolve_related(
-        db,
-        Director,
-        payload.director_ids,
-        "director",
+        db, Director, payload.director_ids, "director"
     )
-    stars = await _resolve_related(
-        db,
-        Star,
-        payload.star_ids,
-        "star",
-    )
+    stars = await _resolve_related(db, Star, payload.star_ids, "star")
 
     movie = Movie(
         name=payload.name,
@@ -416,13 +388,10 @@ async def create_movie(
         directors=directors,
         stars=stars,
     )
-
     db.add(movie)
     await db.commit()
     await db.refresh(movie)
-
-    movie = await _get_movie_detail_or_404(db, movie.id)
-
+    movie = await _get_movie_or_404(db, movie.id)
     return await _movie_detail_payload(db, movie)
 
 
@@ -437,55 +406,37 @@ async def update_movie(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_moderator),
 ) -> dict:
-    movie = await _get_movie_detail_or_404(db, movie_id)
-
+    movie = await _get_movie_or_404(db, movie_id)
     data = payload.model_dump(exclude_unset=True)
 
     if "certification_id" in data:
         certification = await db.get(
-            Certification,
-            data.pop("certification_id"),
+            Certification, data.pop("certification_id")
         )
-
         if certification is None:
             raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                detail="Certification not found.",
+                status.HTTP_400_BAD_REQUEST, detail="Certification not found."
             )
-
         movie.certification = certification
 
     if "genre_ids" in data:
         movie.genres = await _resolve_related(
-            db,
-            Genre,
-            data.pop("genre_ids") or [],
-            "genre",
+            db, Genre, data.pop("genre_ids") or [], "genre"
         )
-
     if "director_ids" in data:
         movie.directors = await _resolve_related(
-            db,
-            Director,
-            data.pop("director_ids") or [],
-            "director",
+            db, Director, data.pop("director_ids") or [], "director"
         )
-
     if "star_ids" in data:
         movie.stars = await _resolve_related(
-            db,
-            Star,
-            data.pop("star_ids") or [],
-            "star",
+            db, Star, data.pop("star_ids") or [], "star"
         )
 
     for field, value in data.items():
         setattr(movie, field, value)
 
     await db.commit()
-
-    movie = await _get_movie_detail_or_404(db, movie_id)
-
+    movie = await _get_movie_or_404(db, movie_id)
     return await _movie_detail_payload(db, movie)
 
 
@@ -493,15 +444,22 @@ async def update_movie(
     "/{movie_id}",
     response_model=MessageResponse,
     summary="[Moderator] Delete a movie",
+    description=(
+        "Deletes a movie, unless it has already been purchased by at least "
+        "one user (enforced once the orders module tracks purchases)."
+    ),
 )
 async def delete_movie(
     movie_id: int,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_moderator),
 ) -> dict:
-    movie = await _get_movie_or_404(db, movie_id)
-
+    movie = await db.get(Movie, movie_id)
+    if movie is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, detail="Movie not found."
+        )
+    # movie with a paid order, and notify moderators of pending cart items.
     await db.delete(movie)
     await db.commit()
-
     return {"message": "Movie deleted."}
