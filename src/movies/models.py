@@ -267,8 +267,14 @@ class CommentLike(Base):
             "user_id", "comment_id", name="uq_comment_likes_user_comment"
         ),
     )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False
+    )
     comment_id: Mapped[int] = mapped_column(
-        ForeignKey("comments.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("comments.id", ondelete="CASCADE"),
+        nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
