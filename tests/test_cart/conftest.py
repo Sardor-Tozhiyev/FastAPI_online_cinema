@@ -1,32 +1,40 @@
 from httpx import AsyncClient
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# Re-exported so pytest picks up shared fixtures/helpers for this directory.
-from tests.test_cart.conftest import create_movie  # noqa: F401
+from src.accounts.models import UserGroupEnum
+
+# Re-exported so pytest picks them up as fixtures/helpers for this
+# directory too -- fixtures defined in a sibling package's conftest.py
+# aren't inherited automatically, but importing them into this module's
+# namespace makes pytest recognize them here.
 from tests.test_movies.conftest import (  # noqa: F401
     certification,
     create_user_headers,
+    movie_payload,
 )
 
 
-async def add_to_cart(
-    client: AsyncClient, headers: dict[str, str], movie_id: int
-) -> None:
+async def create_movie(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    strong_password: str,
+    certification_id: int,
+    tag: str,
+    **overrides,
+) -> int:
+    """Registers a one-off moderator and uses it to create a movie,
+    returning the new movie's id."""
+    _, mod_headers = await create_user_headers(
+        client,
+        db_session,
+        f"mod-{tag}@example.com",
+        strong_password,
+        UserGroupEnum.MODERATOR,
+    )
     response = await client.post(
-        f"/api/v1/cart/items/{movie_id}", headers=headers
+        "/api/v1/movies",
+        json=movie_payload(certification_id, name=f"Movie {tag}", **overrides),
+        headers=mod_headers,
     )
     assert response.status_code == 201, response.text
-
-
-async def mark_order_paid(db_session: AsyncSession, order_id: int) -> None:
-    """Test-only shortcut: the real payments module isn't built yet, so
-    this simulates a successful checkout by flipping the order's status
-    directly in the DB."""
-    from src.orders.models import Order, OrderStatusEnum
-
-    order = (
-        await db_session.execute(select(Order).where(Order.id == order_id))
-    ).scalar_one()
-    order.status = OrderStatusEnum.PAID
-    await db_session.commit()
+    return response.json()["id"]
