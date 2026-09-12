@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.sql.elements import ColumnElement
 
 from src.accounts.dependencies import require_moderator
 from src.accounts.models import User
@@ -35,7 +36,7 @@ from src.movies.schemas import (
 router = APIRouter(prefix="/api/v1/movies", tags=["movies"])
 
 
-# --- Sorting / pagination helpers ---------------------------------------------
+# --- Sorting / pagination helpers ------------------------------------------
 
 
 class SortField(str, Enum):
@@ -75,7 +76,7 @@ async def _list_movies(
     favorites listing (routers.genres / routers.interactions import this)."""
 
     base_query = select(Movie.id).distinct()
-    filters = []
+    filters: list[ColumnElement[bool]] = []
 
     if movie_ids is not None:
         filters.append(Movie.id.in_(movie_ids))
@@ -239,7 +240,7 @@ async def _resolve_related(
     return found
 
 
-# --- Certifications ------------------------------------------------------------
+# --- Certifications ------------------------------------------------------
 
 
 @router.get(
@@ -281,7 +282,7 @@ async def create_certification(
     return certification
 
 
-# --- Movie catalog ---------------------------------------------------------------
+# --- Movie catalog --------------------------------------------------------
 
 
 @router.get(
@@ -330,9 +331,7 @@ async def list_movies(
     response_model=MovieDetailResponse,
     summary="Get full details of a single movie",
 )
-async def get_movie(
-    movie_id: int, db: AsyncSession = Depends(get_db)
-) -> dict:
+async def get_movie(movie_id: int, db: AsyncSession = Depends(get_db)) -> dict:
     movie = await _get_movie_or_404(db, movie_id)
     return await _movie_detail_payload(db, movie)
 
