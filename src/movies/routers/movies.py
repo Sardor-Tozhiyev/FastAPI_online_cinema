@@ -146,7 +146,12 @@ async def _list_movies(
     else:
         result = await db.execute(
             select(Movie)
-            .options(selectinload(Movie.genres))
+            .options(
+                selectinload(Movie.certification),
+                selectinload(Movie.genres),
+                selectinload(Movie.directors),
+                selectinload(Movie.stars),
+            )
             .where(Movie.id.in_(ordered_ids))
         )
         by_id = {m.id: m for m in result.scalars().all()}

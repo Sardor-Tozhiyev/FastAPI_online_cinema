@@ -100,7 +100,7 @@ class MovieListItemResponse(BaseModel):
     likes_count: int = 0
     dislikes_count: int = 0
     average_rating: float | None = None
-    rating_count: int = 0
+    ratings_count: int = 0
 
     @field_validator("price", mode="before")
     @classmethod
@@ -147,7 +147,7 @@ class RatingRequest(BaseModel):
 class RatingResponse(BaseModel):
     movie_id: int
     average_rating: float | None
-    rating_count: int
+    ratings_count: int
     user_rating: float | None
 
 
