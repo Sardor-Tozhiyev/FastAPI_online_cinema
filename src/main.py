@@ -10,6 +10,7 @@ from src.database import AsyncSessionLocal, Base, engine
 from src.movies.routers import router as movies_router
 
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # In production, schema is managed by Alembic migrations (see alembic/).
@@ -32,6 +33,8 @@ app = FastAPI(
 app.include_router(accounts_router)
 app.include_router(movies_router)
 app.include_router(cart_router)
+
+app.include_router(orders_router)
 
 
 @app.get("/health", tags=["health"], summary="Liveness probe")
