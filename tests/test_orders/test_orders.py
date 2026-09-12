@@ -238,9 +238,7 @@ async def test_owner_can_cancel_pending_order(
     )
     assert response.status_code == 200
 
-    detail = await client.get(
-        f"/api/v1/orders/{order_id}", headers=headers
-    )
+    detail = await client.get(f"/api/v1/orders/{order_id}", headers=headers)
     assert detail.json()["status"] == "canceled"
 
 
@@ -379,6 +377,4 @@ async def test_admin_listing_filters_by_user_and_status(
         params={"status_filter": "paid"},
         headers=moderator_headers,
     )
-    assert all(
-        item["status"] == "paid" for item in by_status.json()["items"]
-    )
+    assert all(item["status"] == "paid" for item in by_status.json()["items"])

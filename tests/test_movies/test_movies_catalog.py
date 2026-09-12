@@ -7,7 +7,10 @@ from tests.test_movies.conftest import create_user_headers, movie_payload
 
 
 async def _moderator_headers(
-    client: AsyncClient, db_session: AsyncSession, strong_password: str, tag: str
+    client: AsyncClient,
+    db_session: AsyncSession,
+    strong_password: str,
+    tag: str,
 ) -> dict[str, str]:
     _, headers = await create_user_headers(
         client,
@@ -113,13 +116,9 @@ async def test_create_duplicate_movie_returns_409(
         client, db_session, strong_password, "dup"
     )
     payload = movie_payload(certification.id, name="Duplicate")
-    first = await client.post(
-        "/api/v1/movies", json=payload, headers=headers
-    )
+    first = await client.post("/api/v1/movies", json=payload, headers=headers)
     assert first.status_code == 201
-    second = await client.post(
-        "/api/v1/movies", json=payload, headers=headers
-    )
+    second = await client.post("/api/v1/movies", json=payload, headers=headers)
     assert second.status_code == 409
 
 
@@ -236,9 +235,7 @@ async def test_moderator_can_delete_movie(
     missing = await client.get(f"/api/v1/movies/{movie_id}")
     assert missing.status_code == 404
 
-    again = await client.delete(
-        f"/api/v1/movies/{movie_id}", headers=headers
-    )
+    again = await client.delete(f"/api/v1/movies/{movie_id}", headers=headers)
     assert again.status_code == 404
 
 
@@ -282,14 +279,18 @@ async def test_list_movies_pagination(
     )
     await _seed_catalog(client, headers, certification.id)
 
-    page1 = await client.get("/api/v1/movies", params={"per_page": 2, "page": 1})
+    page1 = await client.get(
+        "/api/v1/movies", params={"per_page": 2, "page": 1}
+    )
     assert page1.status_code == 200
     body1 = page1.json()
     assert body1["total"] == 4
     assert body1["pages"] == 2
     assert len(body1["items"]) == 2
 
-    page2 = await client.get("/api/v1/movies", params={"per_page": 2, "page": 2})
+    page2 = await client.get(
+        "/api/v1/movies", params={"per_page": 2, "page": 2}
+    )
     body2 = page2.json()
     assert len(body2["items"]) == 2
 
@@ -329,9 +330,7 @@ async def test_list_movies_search_matches_title_and_description(
     )
     await _seed_catalog(client, headers, certification.id)
 
-    response = await client.get(
-        "/api/v1/movies", params={"search": "heist"}
-    )
+    response = await client.get("/api/v1/movies", params={"search": "heist"})
     assert response.status_code == 200
     names = {m["name"] for m in response.json()["items"]}
     assert names == {"Delta Heist"}
