@@ -7,14 +7,14 @@ FastAPI (async), PostgreSQL, Celery/Redis, MinIO (S3-compatible storage), and St
 
 This repository is built incrementally, one feature branch at a time:
 
-| Branch                     | Scope                                              | Status |
-|-----------------------------|-----------------------------------------------------|--------|
-| `chore/project-setup`       | Repo skeleton, Docker, Poetry, CI, base app         | ✅ done |
-| `feature/accounts-auth`     | Registration, activation, JWT auth, roles           | ✅ done |
-| `feature/movies-catalog`    | Movies, genres, actors, directors, search/filter    | planned |
-| `feature/shopping-cart`     | Cart CRUD                                           | planned |
-| `feature/orders`            | Order placement & lifecycle                         | planned |
-| `feature/payments-stripe`   | Stripe checkout & webhooks                          | planned |
+| Branch            | Scope                                                               | Status |
+|-------------------|---------------------------------------------------------------------|--------|
+| `project-setup`   | Repo skeleton, Docker, Poetry, CI, base app                         | ✅ done |
+| `accounts-auth`   | Registration, activation, JWT auth, roles                           | ✅ done |
+| `movies-catalog`  | Movies, genres, actors, directors, search/filter                    | ✅ done |
+| `shopping-cart`   | Cart CRUD                                                           | ✅ done |
+| `orders`          | Order placement & lifecycle                                         | ✅ done |
+| `payments-stripe` | Stripe checkout & webhooks                                          | planned |
 
 ## Getting started
 
@@ -48,9 +48,13 @@ poetry run pytest --cov=src --cov-report=term-missing
 ```
 
 Tests use an in-memory SQLite database (see `tests/conftest.py`), so no external
-services are required to run the suite. 22 tests currently cover the accounts module:
-registration, activation/resend, login/refresh/logout, password change, password reset,
-and role-based access control.
+services are required to run the suite. 94 tests currently cover accounts (registration,
+activation/resend, login/refresh/logout, password change/reset, role-based access),
+movies (catalog CRUD/search/filter/sort, genres/stars/directors, reactions, 10-point
+ratings, favorites, nested comments), the shopping cart (add/remove/clear, per-user
+scoping, moderator visibility, delete-movie cart guard), and orders (placement from
+cart with purchased/pending exclusion rules, listing/detail/cancellation, moderator
+admin listing with filters).
 
 ### Database migrations
 
@@ -82,7 +86,7 @@ a narrative summary of what each custom endpoint does and why.
 ### Roles
 
 - **USER** — base catalog/interface access.
-- **MODERATOR** — everything USER has, plus movie/genre/actor CRUD and sales visibility (implemented in the upcoming `feature/movies-catalog` branch).
+- **MODERATOR** — everything USER has, plus movie/genre/actor CRUD and sales visibility (movie/genre/actor CRUD implemented in `feature/movies-catalog`; sales visibility lands with `feature/orders`).
 - **ADMIN** — everything MODERATOR has, plus user management (`/users/{id}/group`, `/users/{id}/activate`).
 
 ### Background jobs (Celery Beat)
