@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from src.accounts.dependencies import get_current_user
 from src.accounts.models import User
@@ -18,9 +17,12 @@ from src.movies.schemas import CommentCreateRequest, CommentResponse
 router = APIRouter(prefix="/api/v1/movies", tags=["comments"])
 
 
-def _comment_to_response(
+def _comment_row_to_dict(
     comment: Comment, likes_by_id: dict[int, int]
 ) -> dict:
+    """Shallow conversion of ORM columns only -- never touches the
+    `replies` relationship, which is not eager-loaded and would trigger a
+    synchronous lazy-load that fails under the async engine."""
     return {
         "id": comment.id,
         "movie_id": comment.movie_id,
@@ -29,11 +31,27 @@ def _comment_to_response(
         "text": comment.text,
         "created_at": comment.created_at,
         "likes_count": likes_by_id.get(comment.id, 0),
-        "replies": [
-            _comment_to_response(reply, likes_by_id)
-            for reply in sorted(comment.replies, key=lambda c: c.created_at)
-        ],
+        "replies": [],
     }
+
+
+def _build_comment_tree(
+    comments: list[Comment], likes_by_id: dict[int, int]
+) -> list[dict]:
+    """Builds a nested reply tree from a flat, already-fetched list of
+    comments, using plain `parent_id` values instead of the ORM
+    relationship (see `_comment_row_to_dict`)."""
+    nodes = {c.id: _comment_row_to_dict(c, likes_by_id) for c in comments}
+    top_level: list[dict] = []
+    # comments are pre-sorted oldest-first so replies end up in order
+    for comment in comments:
+        node = nodes[comment.id]
+        if comment.parent_id is not None and comment.parent_id in nodes:
+            nodes[comment.parent_id]["replies"].append(node)
+        else:
+            top_level.append(node)
+    top_level.sort(key=lambda n: n["created_at"], reverse=True)
+    return top_level
 
 
 @router.get(
@@ -48,11 +66,10 @@ async def list_comments(
 
     result = await db.execute(
         select(Comment)
-        .options(selectinload(Comment.replies))
-        .where(Comment.movie_id == movie_id, Comment.parent_id.is_(None))
-        .order_by(Comment.created_at.desc())
+        .where(Comment.movie_id == movie_id)
+        .order_by(Comment.created_at.asc())
     )
-    top_level = list(result.scalars().all())
+    all_comments = list(result.scalars().all())
 
     likes_result = await db.execute(
         select(CommentLike.comment_id, func.count())
@@ -62,7 +79,7 @@ async def list_comments(
     )
     likes_by_id = {cid: count for cid, count in likes_result.all()}
 
-    return [_comment_to_response(c, likes_by_id) for c in top_level]
+    return _build_comment_tree(all_comments, likes_by_id)
 
 
 @router.post(
@@ -105,7 +122,7 @@ async def create_comment(
                 parent_author.email, movie.name, payload.text
             )
 
-    return _comment_to_response(comment, {})
+    return _comment_row_to_dict(comment, {})
 
 
 @router.delete(

@@ -24,7 +24,7 @@ from src.movies.schemas import (
 router = APIRouter(prefix="/api/v1/movies", tags=["movie interactions"])
 
 
-# --- Favorites (listing) --------------------------------------------------------
+# --- Favorites (listing) -------------------------------------------------
 # NOTE: this literal route ("/favorites") must be registered before
 # routers.movies' "/{movie_id}" route or the latter will shadow it. See
 # the include order in src/movies/routers/__init__.py.
@@ -126,7 +126,7 @@ async def remove_favorite(
     return {"message": "Movie removed from favorites."}
 
 
-# --- Reactions (like / dislike) ----------------------------------------------------
+# --- Reactions (like / dislike) -------------------------------------------
 
 
 @router.put(
@@ -183,7 +183,7 @@ async def remove_reaction(
     return {"message": "Reaction removed."}
 
 
-# --- Ratings ------------------------------------------------------------------------
+# --- Ratings ----------------------------------------------------------------
 
 
 @router.put(
