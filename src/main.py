@@ -8,7 +8,7 @@ from src.cart.routers import router as cart_router
 from src.config import settings
 from src.database import AsyncSessionLocal, Base, engine
 from src.movies.routers import router as movies_router
-
+from src.orders.routers import router as orders_router
 
 
 @asynccontextmanager
