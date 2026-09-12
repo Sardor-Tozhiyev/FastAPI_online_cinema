@@ -2,19 +2,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from src.movies.routers import (
-    router,
-    interactions,
-    comments,
-    genres,
-    stars,
-    directors,
-    movies,
-)
 from src.accounts.bootstrap import seed_user_groups
 from src.accounts.routers import router as accounts_router
+from src.cart.routers import router as cart_router
 from src.config import settings
 from src.database import AsyncSessionLocal, Base, engine
+from src.movies.routers import router as movies_router
 
 
 @asynccontextmanager
@@ -37,13 +30,8 @@ app = FastAPI(
 )
 
 app.include_router(accounts_router)
-
-router.include_router(interactions.router)
-router.include_router(comments.router)
-router.include_router(genres.router)
-router.include_router(stars.router)
-router.include_router(directors.router)
-router.include_router(movies.router)
+app.include_router(movies_router)
+app.include_router(cart_router)
 
 
 @app.get("/health", tags=["health"], summary="Liveness probe")
