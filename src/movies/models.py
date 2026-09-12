@@ -1,5 +1,8 @@
 import uuid
 from datetime import datetime, timezone
+from decimal import Decimal
+from typing import TYPE_CHECKING
+
 
 from sqlalchemy import (
     String,
@@ -15,6 +18,9 @@ from sqlalchemy.dialects.postgresql.base import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database import Base
+
+if TYPE_CHECKING:
+    from src.cart.models import CartItem
 
 
 class Genre(Base):
@@ -113,7 +119,7 @@ class Movie(Base):
     meta_score: Mapped[float | None] = mapped_column(nullable=True)
     gross: Mapped[float | None] = mapped_column(nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     certification_id: Mapped[int] = mapped_column(
         ForeignKey("certifications.id"), nullable=False
     )
@@ -145,6 +151,10 @@ class Movie(Base):
         cascade="all, delete-orphan",
     )
     favorited_by: Mapped[list["Favorite"]] = relationship(
+        back_populates="movie",
+        cascade="all, delete-orphan",
+    )
+    cart_items: Mapped[list["CartItem"]] = relationship(
         back_populates="movie",
         cascade="all, delete-orphan",
     )

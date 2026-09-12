@@ -10,6 +10,7 @@ from sqlalchemy.sql.elements import ColumnElement
 from src.accounts.dependencies import require_moderator
 from src.accounts.models import User
 from src.accounts.schemas import MessageResponse
+from src.cart.models import CartItem
 from src.database import get_db
 from src.movies.models import (
     Certification,
@@ -36,7 +37,7 @@ from src.movies.schemas import (
 router = APIRouter(prefix="/api/v1/movies", tags=["movies"])
 
 
-# --- Sorting / pagination helpers ------------------------------------------
+# --- Sorting / pagination helpers -------------------------------------------
 
 
 class SortField(str, Enum):
@@ -240,7 +241,7 @@ async def _resolve_related(
     return found
 
 
-# --- Certifications ------------------------------------------------------
+# --- Certifications --------------------------------------------------------
 
 
 @router.get(
@@ -282,7 +283,7 @@ async def create_certification(
     return certification
 
 
-# --- Movie catalog --------------------------------------------------------
+# --- Movie catalog -----------------------------------------------------------
 
 
 @router.get(
@@ -444,12 +445,20 @@ async def update_movie(
     response_model=MessageResponse,
     summary="[Moderator] Delete a movie",
     description=(
-        "Deletes a movie, unless it has already been purchased by at least "
-        "one user (enforced once the orders module tracks purchases)."
+        "Deletes a movie. If it is currently sitting in one or more "
+        "users' carts, the deletion is rejected with 409 unless "
+        "`?force=true` is passed, so moderators are notified before a "
+        "movie disappears out from under someone's cart. Blocking "
+        "deletion of movies that have already been purchased will be "
+        "enforced once the orders module tracks purchases."
     ),
 )
 async def delete_movie(
     movie_id: int,
+    force: bool = Query(
+        default=False,
+        description="Delete even if the movie is in users' carts.",
+    ),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_moderator),
 ) -> dict:
@@ -458,7 +467,24 @@ async def delete_movie(
         raise HTTPException(
             status.HTTP_404_NOT_FOUND, detail="Movie not found."
         )
-    # movie with a paid order, and notify moderators of pending cart items.
+
+    if not force:
+        cart_count = (
+            await db.execute(
+                select(func.count(CartItem.id)).where(
+                    CartItem.movie_id == movie_id
+                )
+            )
+        ).scalar_one()
+        if cart_count > 0:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail=(
+                    f"This movie is in {cart_count} user cart(s). "
+                    "Pass ?force=true to delete it anyway."
+                ),
+            )
+
     await db.delete(movie)
     await db.commit()
     return {"message": "Movie deleted."}
