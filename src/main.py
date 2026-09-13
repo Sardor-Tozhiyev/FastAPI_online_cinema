@@ -6,7 +6,7 @@ from src.accounts.bootstrap import seed_user_groups
 from src.accounts.routers import router as accounts_router
 from src.cart.routers import router as cart_router
 from src.config import settings
-from src.database import AsyncSessionLocal, Base, engine
+from src.database import AsyncSessionLocal
 from src.movies.routers import router as movies_router
 from src.orders.routers import router as orders_router
 
@@ -16,8 +16,6 @@ async def lifespan(app: FastAPI):
     # In production, schema is managed by Alembic migrations (see alembic/).
     # create_all here is a convenience for local/dev boot and is a no-op once
     # migrations have already created the tables.
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     async with AsyncSessionLocal() as session:
         await seed_user_groups(session)
     yield
