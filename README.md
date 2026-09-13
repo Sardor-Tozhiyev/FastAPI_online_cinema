@@ -7,14 +7,15 @@ FastAPI (async), PostgreSQL, Celery/Redis, MinIO (S3-compatible storage), and St
 
 This repository is built incrementally, one feature branch at a time:
 
-| Branch            | Scope                                                               | Status |
-|-------------------|---------------------------------------------------------------------|--------|
-| `project-setup`   | Repo skeleton, Docker, Poetry, CI, base app                         | ✅ done |
-| `accounts-auth`   | Registration, activation, JWT auth, roles                           | ✅ done |
-| `movies-catalog`  | Movies, genres, actors, directors, search/filter                    | ✅ done |
-| `shopping-cart`   | Cart CRUD                                                           | ✅ done |
-| `orders`          | Order placement & lifecycle                                         | ✅ done |
-| `payments-stripe` | Stripe checkout & webhooks                                          | planned |
+| Branch                 | Scope                                              | Status |
+|------------------------|-----------------------------------------------------|--------|
+| `project-setup`        | Repo skeleton, Docker, Poetry, CI, base app         | ✅ done |
+| `accounts-auth`        | Registration, activation, JWT auth, roles           | ✅ done |
+| `movies-catalog`       | Movies, genres, actors, directors, search/filter    | ✅ done |
+| `shopping-cart`        | Cart CRUD                                           | ✅ done |
+| `orders`               | Order placement & lifecycle                         | ✅ done |
+| `payments-stripe`      | Stripe checkout & webhooks                          | ✅ done |
+| `restrict-docs-access` | Gate /docs, /redoc, /openapi.json behind HTTP Basic | ✅ done |
 
 ## Getting started
 
@@ -30,7 +31,9 @@ This starts: `app` (FastAPI on :8000), `db` (Postgres), `redis`, `celery_worker`
 :9000 / console :9001), and `mailhog` (catches outgoing emails, inspect at
 http://localhost:8025).
 
-Interactive API docs (Swagger UI): **http://localhost:8000/docs**
+Interactive API docs (Swagger UI): **http://localhost:8000/docs** — gated behind HTTP Basic
+Auth (`DOCS_USERNAME` / `DOCS_PASSWORD`, see `.env.example`), separate from the app's own
+JWT auth, per the requirement to restrict documentation visibility to authorized users.
 ReDoc: **http://localhost:8000/redoc**
 
 ### Locally with Poetry
@@ -38,7 +41,7 @@ ReDoc: **http://localhost:8000/redoc**
 ```bash
 poetry install
 cp .env.example .env   # adjust DATABASE_URL etc. to point at a local Postgres, or use sqlite for a quick spin
-poetry run uvicorn main:app --reload
+poetry run uvicorn src.main:app --reload
 ```
 
 ### Running tests
@@ -48,20 +51,40 @@ poetry run pytest --cov=src --cov-report=term-missing
 ```
 
 Tests use an in-memory SQLite database (see `tests/conftest.py`), so no external
-services are required to run the suite. 94 tests currently cover accounts (registration,
+services are required to run the suite. 119 tests currently cover accounts (registration,
 activation/resend, login/refresh/logout, password change/reset, role-based access),
 movies (catalog CRUD/search/filter/sort, genres/stars/directors, reactions, 10-point
 ratings, favorites, nested comments), the shopping cart (add/remove/clear, per-user
-scoping, moderator visibility, delete-movie cart guard), and orders (placement from
-cart with purchased/pending exclusion rules, listing/detail/cancellation, moderator
-admin listing with filters).
+scoping, moderator visibility, delete-movie cart guard), orders (placement from cart
+with purchased/pending exclusion rules, listing/detail/cancellation, moderator admin
+listing with filters), payments (Stripe checkout session creation, webhook idempotency,
+payment history, moderator refunds, admin listing with filters), and docs access
+control (HTTP Basic gating on /docs, /redoc, /openapi.json). The Stripe SDK itself is
+never called in tests — `src/payments/stripe_client.py` isolates it behind a thin
+wrapper that tests monkeypatch, and the webhook handler trusts a plain JSON body when
+`STRIPE_WEBHOOK_SECRET` is unset (local dev / tests) instead of requiring a real
+Stripe signature.
 
 ### Database migrations
+
+Schema is owned entirely by Alembic — there is no `create_all()` fallback in the app
+itself. `docker-entrypoint.sh` runs `alembic upgrade head` automatically before the
+`app` service starts (both locally via `docker compose up` and on every EC2 deploy),
+so the running schema is always in sync with `alembic/versions/`. Only the `app`
+service runs migrations; `celery_worker`/`celery_beat` don't, to avoid several
+containers racing to apply them concurrently on the same deploy.
+
+To add a new migration after changing a model:
 
 ```bash
 poetry run alembic revision --autogenerate -m "add xyz table"
 poetry run alembic upgrade head
 ```
+
+Note: `alembic/env.py` imports every module that defines models (`src.accounts.models`,
+`src.movies.models`, ...) specifically so autogenerate can see them — `Base.metadata`
+is empty until those modules are imported somewhere, and a missing import there
+silently produces an empty, no-op migration instead of an error.
 
 ## API documentation — Accounts module (`/api/v1/accounts`)
 

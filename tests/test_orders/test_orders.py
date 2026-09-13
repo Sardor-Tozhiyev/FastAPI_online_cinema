@@ -8,7 +8,7 @@ from tests.test_cart.conftest import create_movie
 from tests.test_movies.conftest import create_user_headers
 
 
-# --- Placing orders ---------------------------------------
+# --- Placing orders ------------------------------------------------------------------
 
 
 async def test_placing_order_with_empty_cart_returns_400(
@@ -132,7 +132,7 @@ async def test_placing_order_with_only_excluded_movies_returns_400(
     assert second.status_code == 400
 
 
-# --- Listing / detail -----------------------------------------
+# --- Listing / detail ----------------------------------------------------------------
 
 
 async def test_list_orders_and_status_filter(
@@ -214,7 +214,7 @@ async def test_get_order_detail_permissions(
     assert missing.status_code == 404
 
 
-# --- Cancellation -----------------------------------
+# --- Cancellation --------------------------------------------------------------------
 
 
 async def test_owner_can_cancel_pending_order(
@@ -241,28 +241,11 @@ async def test_owner_can_cancel_pending_order(
     detail = await client.get(f"/api/v1/orders/{order_id}", headers=headers)
     assert detail.json()["status"] == "canceled"
 
-
-async def test_cannot_cancel_already_canceled_order(
-    client: AsyncClient,
-    db_session: AsyncSession,
-    strong_password: str,
-    certification: Certification,
-):
-    movie_id = await create_movie(
-        client, db_session, strong_password, certification.id, "doublecancel"
-    )
-    _, headers = await create_user_headers(
-        client, db_session, "double-canceler@example.com", strong_password
-    )
-    await add_to_cart(client, headers, movie_id)
-    created = await client.post("/api/v1/orders", headers=headers)
-    order_id = created.json()["order"]["id"]
-
-    await client.post(f"/api/v1/orders/{order_id}/cancel", headers=headers)
-    second = await client.post(
+    # Canceling an already-canceled order is rejected, not a no-op.
+    again = await client.post(
         f"/api/v1/orders/{order_id}/cancel", headers=headers
     )
-    assert second.status_code == 400
+    assert again.status_code == 400
 
 
 async def test_cannot_cancel_paid_order(
@@ -313,17 +296,7 @@ async def test_non_owner_cannot_cancel_order(
     assert response.status_code == 403
 
 
-# --- Admin listing ------------------------------
-
-
-async def test_admin_listing_requires_moderator(
-    client: AsyncClient, db_session: AsyncSession, strong_password: str
-):
-    _, headers = await create_user_headers(
-        client, db_session, "not-a-mod@example.com", strong_password
-    )
-    response = await client.get("/api/v1/orders/admin", headers=headers)
-    assert response.status_code == 403
+# --- Admin listing ---------------------------------------------------------------------
 
 
 async def test_admin_listing_filters_by_user_and_status(
@@ -332,6 +305,12 @@ async def test_admin_listing_filters_by_user_and_status(
     strong_password: str,
     certification: Certification,
 ):
+    _, plain_headers = await create_user_headers(
+        client, db_session, "not-a-mod@example.com", strong_password
+    )
+    forbidden = await client.get("/api/v1/orders/admin", headers=plain_headers)
+    assert forbidden.status_code == 403
+
     movie_a = await create_movie(
         client, db_session, strong_password, certification.id, "adminA"
     )

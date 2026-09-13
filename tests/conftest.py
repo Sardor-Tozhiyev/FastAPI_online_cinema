@@ -3,6 +3,7 @@ from typing import AsyncGenerator
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -24,6 +25,18 @@ async def _session_maker():
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+
+    # SQLite ignores `ON DELETE CASCADE` unless foreign key enforcement is
+    # turned on per-connection -- without this, cascade deletes defined on
+    # models (e.g. deleting a Movie cascading to its CartItems) silently
+    # no-op in tests even though they work correctly against Postgres in
+    # production, which enforces foreign keys by default.
+    @event.listens_for(engine.sync_engine, "connect")
+    def _enable_sqlite_foreign_keys(dbapi_connection, _):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
@@ -48,8 +61,7 @@ async def db_session(_session_maker) -> AsyncGenerator[AsyncSession, None]:
 @pytest_asyncio.fixture
 async def client(_session_maker) -> AsyncGenerator[AsyncClient, None]:
     # Mirrors production behaviour: each request gets its own fresh session,
-    # avoiding identity-map/staleness issues
-    # from sharing one session across requests.
+    # avoiding identity-map/staleness issues from sharing one session across requests.
     async def _override_get_db():
         async with _session_maker() as session:
             yield session

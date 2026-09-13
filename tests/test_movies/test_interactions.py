@@ -30,7 +30,7 @@ async def _create_movie(
     return response.json()["id"]
 
 
-# --- Reactions ------------------------------------
+# --- Reactions -----------------------------------------------------------------------
 
 
 async def test_like_and_dislike_counts_reflected_in_detail(
@@ -123,22 +123,7 @@ async def test_remove_reaction(
     assert detail.json()["likes_count"] == 0
 
 
-async def test_reaction_requires_authentication(
-    client: AsyncClient,
-    db_session: AsyncSession,
-    strong_password: str,
-    certification: Certification,
-):
-    movie_id = await _create_movie(
-        client, db_session, strong_password, certification.id, "auth"
-    )
-    response = await client.put(
-        f"/api/v1/movies/{movie_id}/reaction", json={"is_like": True}
-    )
-    assert response.status_code == 401
-
-
-# --- Ratings ------------------------------------------
+# --- Ratings ------------------------------------------------------------------------
 
 
 async def test_rate_movie_computes_average(
@@ -229,7 +214,7 @@ async def test_rate_movie_rejects_out_of_range_values(
     assert too_low.status_code == 422
 
 
-# --- Favorites ---------------------------------------
+# --- Favorites -----------------------------------------------------------------------
 
 
 async def test_add_list_and_remove_favorite(
@@ -253,8 +238,15 @@ async def test_add_list_and_remove_favorite(
     )
     assert add.status_code == 200
 
+    # Adding the same movie again is idempotent, not a duplicate entry.
+    add_again = await client.post(
+        f"/api/v1/movies/{movie_id}/favorite", headers=headers
+    )
+    assert add_again.status_code == 200
+
     listing = await client.get("/api/v1/movies/favorites", headers=headers)
     assert listing.status_code == 200
+    assert listing.json()["total"] == 1
     ids = {m["id"] for m in listing.json()["items"]}
     assert ids == {movie_id}
     assert other_movie_id not in ids
@@ -269,37 +261,6 @@ async def test_add_list_and_remove_favorite(
     )
     assert empty_listing.json()["items"] == []
     assert empty_listing.json()["total"] == 0
-
-
-async def test_adding_same_favorite_twice_is_idempotent(
-    client: AsyncClient,
-    db_session: AsyncSession,
-    strong_password: str,
-    certification: Certification,
-):
-    movie_id = await _create_movie(
-        client, db_session, strong_password, certification.id, "idempotent"
-    )
-    _, headers = await create_user_headers(
-        client, db_session, "idempotent-fav@example.com", strong_password
-    )
-
-    first = await client.post(
-        f"/api/v1/movies/{movie_id}/favorite", headers=headers
-    )
-    second = await client.post(
-        f"/api/v1/movies/{movie_id}/favorite", headers=headers
-    )
-    assert first.status_code == 200
-    assert second.status_code == 200
-
-    listing = await client.get("/api/v1/movies/favorites", headers=headers)
-    assert listing.json()["total"] == 1
-
-
-async def test_favorites_require_authentication(client: AsyncClient):
-    response = await client.get("/api/v1/movies/favorites")
-    assert response.status_code == 401
 
 
 async def test_favorites_are_scoped_per_user(

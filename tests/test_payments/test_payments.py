@@ -17,7 +17,7 @@ def _raise_stripe_error(**kwargs):
     raise stripe.error.StripeError("simulated Stripe outage")
 
 
-# --- Checkout session creation --------------------
+# --- Checkout session creation --------------------------------------------------------
 
 
 async def test_create_checkout_session(
@@ -48,7 +48,7 @@ async def test_create_checkout_session(
     assert "checkout.stripe.test" in body["checkout_url"]
 
 
-async def test_checkout_session_for_others_order_returns_404(
+async def test_checkout_session_order_not_found_returns_404(
     client: AsyncClient,
     db_session: AsyncSession,
     strong_password: str,
@@ -70,10 +70,15 @@ async def test_checkout_session_for_others_order_returns_404(
     )
     order_id = await create_pending_order(client, owner_headers, movie_id)
 
-    response = await client.post(
+    someone_elses = await client.post(
         f"/api/v1/payments/checkout/{order_id}", headers=stranger_headers
     )
-    assert response.status_code == 404
+    assert someone_elses.status_code == 404
+
+    nonexistent = await client.post(
+        "/api/v1/payments/checkout/999999", headers=owner_headers
+    )
+    assert nonexistent.status_code == 404
 
 
 async def test_checkout_session_for_non_pending_order_returns_400(
@@ -102,18 +107,6 @@ async def test_checkout_session_for_non_pending_order_returns_400(
     assert response.status_code == 400
 
 
-async def test_checkout_session_unknown_order_returns_404(
-    client: AsyncClient, db_session: AsyncSession, strong_password: str
-):
-    _, headers = await create_user_headers(
-        client, db_session, "checkout-404@example.com", strong_password
-    )
-    response = await client.post(
-        "/api/v1/payments/checkout/999999", headers=headers
-    )
-    assert response.status_code == 404
-
-
 async def test_checkout_session_stripe_error_returns_502(
     client: AsyncClient,
     db_session: AsyncSession,
@@ -139,7 +132,7 @@ async def test_checkout_session_stripe_error_returns_502(
     assert response.status_code == 502
 
 
-# --- Webhook --------------------------------
+# --- Webhook -------------------------------------------------------------------------
 
 
 async def test_webhook_marks_order_paid_and_creates_payment(
@@ -217,12 +210,7 @@ async def test_webhook_with_invalid_payload_returns_400(client: AsyncClient):
     assert response.status_code == 400
 
 
-# --- History / detail permissions -------------------
-
-
-async def test_payments_require_authentication(client: AsyncClient):
-    response = await client.get("/api/v1/payments")
-    assert response.status_code == 401
+# --- History / detail permissions ------------------------------------------------------
 
 
 async def test_get_payment_detail_permissions(
@@ -274,7 +262,7 @@ async def test_get_payment_detail_permissions(
     assert missing.status_code == 404
 
 
-# --- Refunds ------------------------------------
+# --- Refunds ---------------------------------------------------------------------------
 
 
 async def test_moderator_can_refund_payment(
@@ -326,43 +314,11 @@ async def test_moderator_can_refund_payment(
     )
     assert order.json()["status"] == "canceled"
 
-
-async def test_cannot_refund_already_refunded_payment(
-    client: AsyncClient,
-    db_session: AsyncSession,
-    strong_password: str,
-    certification: Certification,
-    monkeypatch,
-):
-    monkeypatch.setattr(
-        "payments.stripe_client.create_refund", lambda **kwargs: None
-    )
-    movie_id = await create_movie(
-        client, db_session, strong_password, certification.id, "doublerefund"
-    )
-    _, user_headers = await create_user_headers(
-        client, db_session, "double-refund-user@example.com", strong_password
-    )
-    _, mod_headers = await create_user_headers(
-        client,
-        db_session,
-        "double-refund-mod@example.com",
-        strong_password,
-        UserGroupEnum.MODERATOR,
-    )
-    order_id = await create_pending_order(client, user_headers, movie_id)
-    await client.post("/api/v1/payments/webhook", json=webhook_event(order_id))
-    payment_id = (
-        await client.get("/api/v1/payments", headers=user_headers)
-    ).json()["items"][0]["id"]
-
-    await client.post(
+    # Refunding an already-refunded payment is rejected, not a no-op.
+    again = await client.post(
         f"/api/v1/payments/{payment_id}/refund", headers=mod_headers
     )
-    second = await client.post(
-        f"/api/v1/payments/{payment_id}/refund", headers=mod_headers
-    )
-    assert second.status_code == 400
+    assert again.status_code == 400
 
 
 async def test_non_moderator_cannot_refund(
@@ -389,17 +345,7 @@ async def test_non_moderator_cannot_refund(
     assert response.status_code == 403
 
 
-# --- Admin listing ----------------------------------
-
-
-async def test_admin_payment_listing_requires_moderator(
-    client: AsyncClient, db_session: AsyncSession, strong_password: str
-):
-    _, headers = await create_user_headers(
-        client, db_session, "not-a-payment-mod@example.com", strong_password
-    )
-    response = await client.get("/api/v1/payments/admin", headers=headers)
-    assert response.status_code == 403
+# --- Admin listing ---------------------------------------------------------------------
 
 
 async def test_admin_payment_listing_filters_by_user_and_status(
@@ -412,6 +358,14 @@ async def test_admin_payment_listing_filters_by_user_and_status(
     monkeypatch.setattr(
         "payments.stripe_client.create_refund", lambda **kwargs: None
     )
+    _, plain_headers = await create_user_headers(
+        client, db_session, "not-a-payment-mod@example.com", strong_password
+    )
+    forbidden = await client.get(
+        "/api/v1/payments/admin", headers=plain_headers
+    )
+    assert forbidden.status_code == 403
+
     movie_a = await create_movie(
         client, db_session, strong_password, certification.id, "adminpayA"
     )

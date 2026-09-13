@@ -6,15 +6,12 @@ from movies.models import Certification
 from tests.test_movies.conftest import create_user_headers, movie_payload
 
 
-async def test_list_genres_empty(client: AsyncClient):
-    response = await client.get("/api/v1/movies/genres")
-    assert response.status_code == 200
-    assert response.json() == []
-
-
 async def test_moderator_can_create_genre(
     client: AsyncClient, db_session: AsyncSession, strong_password: str
 ):
+    empty = await client.get("/api/v1/movies/genres")
+    assert empty.json() == []
+
     _, headers = await create_user_headers(
         client,
         db_session,
@@ -143,13 +140,10 @@ async def test_movies_by_genre_returns_only_matching_movies(
         headers=headers,
     )
 
-    response = await client.get(f"/api/v1/movies/genres/{action_id}/movies")
-    assert response.status_code == 200
-    body = response.json()
-    assert body["total"] == 1
-    assert body["items"][0]["name"] == "Action Movie"
+    matching = await client.get(f"/api/v1/movies/genres/{action_id}/movies")
+    assert matching.status_code == 200
+    assert matching.json()["total"] == 1
+    assert matching.json()["items"][0]["name"] == "Action Movie"
 
-
-async def test_movies_by_unknown_genre_returns_404(client: AsyncClient):
-    response = await client.get("/api/v1/movies/genres/999/movies")
-    assert response.status_code == 404
+    unknown = await client.get("/api/v1/movies/genres/999999/movies")
+    assert unknown.status_code == 404

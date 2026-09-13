@@ -22,7 +22,7 @@ async def _moderator_headers(
     return headers
 
 
-# --- Create -------------------------------------
+# --- Create ------------------------------------------------------------------------
 
 
 async def test_moderator_can_create_movie_with_relations(
@@ -75,35 +75,26 @@ async def test_regular_user_cannot_create_movie(
     assert response.status_code == 403
 
 
-async def test_create_movie_with_unknown_certification_returns_400(
-    client: AsyncClient, db_session: AsyncSession, strong_password: str
-):
-    headers = await _moderator_headers(
-        client, db_session, strong_password, "badcert"
-    )
-    response = await client.post(
-        "/api/v1/movies",
-        json=movie_payload(999999),
-        headers=headers,
-    )
-    assert response.status_code == 400
-
-
-async def test_create_movie_with_unknown_genre_returns_400(
+async def test_create_movie_with_unknown_foreign_keys_returns_400(
     client: AsyncClient,
     db_session: AsyncSession,
     strong_password: str,
     certification: Certification,
 ):
     headers = await _moderator_headers(
-        client, db_session, strong_password, "badgenre"
+        client, db_session, strong_password, "badfk"
     )
-    response = await client.post(
+    bad_cert = await client.post(
+        "/api/v1/movies", json=movie_payload(999999), headers=headers
+    )
+    assert bad_cert.status_code == 400
+
+    bad_genre = await client.post(
         "/api/v1/movies",
         json=movie_payload(certification.id, genre_ids=[999999]),
         headers=headers,
     )
-    assert response.status_code == 400
+    assert bad_genre.status_code == 400
 
 
 async def test_create_duplicate_movie_returns_409(
@@ -122,7 +113,7 @@ async def test_create_duplicate_movie_returns_409(
     assert second.status_code == 409
 
 
-# --- Read ---------------------------------------
+# --- Read ------------------------------------------------------------------------
 
 
 async def test_get_movie_detail_and_404(
@@ -149,7 +140,7 @@ async def test_get_movie_detail_and_404(
     assert missing.status_code == 404
 
 
-# --- Update / delete ---------------------------------
+# --- Update / delete ---------------------------------------------------------------
 
 
 async def test_moderator_can_update_movie(
@@ -239,32 +230,29 @@ async def test_moderator_can_delete_movie(
     assert again.status_code == 404
 
 
-# --- Catalog: pagination / filter / search / sort ---------------------
+# --- Catalog: pagination / filter / search / sort ------------------------------------
 
 
 async def _seed_catalog(
     client: AsyncClient, headers: dict[str, str], certification_id: int
 ) -> None:
     movies = [
-        ("Alpha", 2010, 6.0, 5.0),
-        ("Beta", 2015, 7.5, 15.0),
-        ("Gamma", 2020, 9.0, 10.0),
-        ("Delta Heist", 2020, 8.0, 20.0),
+        {"name": "Alpha", "year": 2010, "imdb": 6.0, "price": 5.0},
+        {"name": "Beta", "year": 2015, "imdb": 7.5, "price": 15.0},
+        {"name": "Gamma", "year": 2020, "imdb": 9.0, "price": 10.0},
+        {"name": "Delta Heist", "year": 2020, "imdb": 8.0, "price": 20.0},
     ]
-
-    for name, year, imdb, price in movies:
+    for m in movies:
         payload = movie_payload(
             certification_id,
-            name=name,
-            year=year,
-            imdb=imdb,
-            price=price,
+            name=m["name"],
+            year=m["year"],
+            imdb=m["imdb"],
+            price=m["price"],
         )
-        payload["description"] = f"A story about {name}."
-
-        if name == "Delta Heist":
+        payload["description"] = f"A story about {m['name']}."
+        if m["name"] == "Delta Heist":
             payload["description"] = "A thrilling museum heist unfolds."
-
         response = await client.post(
             "/api/v1/movies", json=payload, headers=headers
         )
@@ -322,27 +310,7 @@ async def test_list_movies_filters_by_year_and_imdb(
     assert names == {"Gamma", "Delta Heist"}
 
 
-async def test_list_movies_search_matches_title_and_description(
-    client: AsyncClient,
-    db_session: AsyncSession,
-    strong_password: str,
-    certification: Certification,
-):
-    headers = await _moderator_headers(
-        client, db_session, strong_password, "search"
-    )
-    await _seed_catalog(client, headers, certification.id)
-
-    response = await client.get("/api/v1/movies", params={"search": "heist"})
-    assert response.status_code == 200
-    names = {m["name"] for m in response.json()["items"]}
-    assert names == {"Delta Heist"}
-
-    by_title = await client.get("/api/v1/movies", params={"search": "Alpha"})
-    assert {m["name"] for m in by_title.json()["items"]} == {"Alpha"}
-
-
-async def test_list_movies_search_matches_director_and_star(
+async def test_list_movies_search_matches_title_description_director_star(
     client: AsyncClient,
     db_session: AsyncSession,
     strong_password: str,
@@ -351,33 +319,40 @@ async def test_list_movies_search_matches_director_and_star(
     star,
 ):
     headers = await _moderator_headers(
-        client, db_session, strong_password, "search-people"
+        client, db_session, strong_password, "search"
     )
-    await client.post(
-        "/api/v1/movies",
-        json=movie_payload(
-            certification.id, name="Nolan Film", director_ids=[director.id]
-        ),
-        headers=headers,
-    )
+    await _seed_catalog(client, headers, certification.id)
     await client.post(
         "/api/v1/movies",
         json=movie_payload(
             certification.id,
-            name="Murphy Film",
+            name="Nolan Film",
             year=2024,
+            director_ids=[director.id],
             star_ids=[star.id],
         ),
         headers=headers,
     )
 
+    by_description = await client.get(
+        "/api/v1/movies", params={"search": "heist"}
+    )
+    assert {m["name"] for m in by_description.json()["items"]} == {
+        "Delta Heist"
+    }
+
+    by_title = await client.get("/api/v1/movies", params={"search": "Alpha"})
+    assert {m["name"] for m in by_title.json()["items"]} == {"Alpha"}
+
     by_director = await client.get(
-        "/api/v1/movies", params={"search": "Nolan"}
+        "/api/v1/movies", params={"search": director.name.split()[0]}
     )
     assert {m["name"] for m in by_director.json()["items"]} == {"Nolan Film"}
 
-    by_star = await client.get("/api/v1/movies", params={"search": "Murphy"})
-    assert {m["name"] for m in by_star.json()["items"]} == {"Murphy Film"}
+    by_star = await client.get(
+        "/api/v1/movies", params={"search": star.name.split()[0]}
+    )
+    assert {m["name"] for m in by_star.json()["items"]} == {"Nolan Film"}
 
 
 async def test_list_movies_sort_by_price(
