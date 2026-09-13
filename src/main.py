@@ -8,7 +8,7 @@ from accounts.bootstrap import seed_user_groups
 from accounts.routers import router as accounts_router
 from cart.routers import router as cart_router
 from config import settings
-from database import AsyncSessionLocal, Base, engine
+from database import AsyncSessionLocal
 from docs_security import require_docs_access
 from movies.routers import router as movies_router
 from orders.routers import router as orders_router
