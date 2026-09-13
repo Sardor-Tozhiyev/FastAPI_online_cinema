@@ -7,118 +7,428 @@ FastAPI (async), PostgreSQL, Celery/Redis, MinIO (S3-compatible storage), and St
 
 This repository is built incrementally, one feature branch at a time:
 
-| Branch                 | Scope                                              | Status |
-|------------------------|-----------------------------------------------------|--------|
-| `project-setup`        | Repo skeleton, Docker, Poetry, CI, base app         | ✅ done |
-| `accounts-auth`        | Registration, activation, JWT auth, roles           | ✅ done |
-| `movies-catalog`       | Movies, genres, actors, directors, search/filter    | ✅ done |
-| `shopping-cart`        | Cart CRUD                                           | ✅ done |
-| `orders`               | Order placement & lifecycle                         | ✅ done |
-| `payments-stripe`      | Stripe checkout & webhooks                          | ✅ done |
-| `restrict-docs-access` | Gate /docs, /redoc, /openapi.json behind HTTP Basic | ✅ done |
+| Branch                 | Scope                                                     | Status |
+| ---------------------- | --------------------------------------------------------- | ------ |
+| `project-setup`        | Repo skeleton, Docker, Poetry, CI, base app               | ✅ done |
+| `accounts-auth`        | Registration, activation, JWT auth, roles                 | ✅ done |
+| `movies-catalog`       | Movies, genres, actors, directors, search/filter          | ✅ done |
+| `shopping-cart`        | Cart CRUD                                                 | ✅ done |
+| `orders`               | Order placement & lifecycle                               | ✅ done |
+| `payments-stripe`      | Stripe checkout & webhooks                                | ✅ done |
+| `restrict-docs-access` | Gate `/docs`, `/redoc`, `/openapi.json` behind HTTP Basic | ✅ done |
+
+## Tech stack
+
+* Python 3.13
+* FastAPI
+* SQLAlchemy 2.0 (async)
+* PostgreSQL 16
+* Alembic
+* Celery + Redis
+* MinIO (S3-compatible object storage)
+* Stripe
+* Poetry
+* Docker / Docker Compose
+* Nginx
+* pytest / pytest-asyncio / pytest-cov
+* flake8
+* Black
+* mypy
+* GitHub Actions
+* AWS EC2
 
 ## Getting started
 
 ### With Docker (recommended)
 
+Create a local environment file:
+
 ```bash
 cp .env.example .env
+```
+
+Then start the application:
+
+```bash
 docker compose up --build
 ```
 
-This starts: `app` (FastAPI on :8000), `db` (Postgres), `redis`, `celery_worker`,
-`celery_beat` (periodic cleanup of expired tokens), `minio` (S3-compatible storage on
-:9000 / console :9001), and `mailhog` (catches outgoing emails, inspect at
-http://localhost:8025).
+The following services are started:
 
-Interactive API docs (Swagger UI): **http://localhost:8000/docs** — gated behind HTTP Basic
-Auth (`DOCS_USERNAME` / `DOCS_PASSWORD`, see `.env.example`), separate from the app's own
-JWT auth, per the requirement to restrict documentation visibility to authorized users.
-ReDoc: **http://localhost:8000/redoc**
+* `app` — FastAPI application on port `8000`
+* `db` — PostgreSQL
+* `redis` — Redis
+* `celery_worker` — Celery background worker
+* `celery_beat` — scheduled Celery tasks
+* `minio` — S3-compatible object storage
+* `mailhog` — local email testing server
 
-### Locally with Poetry
+MailHog Web UI is available at:
+
+```text
+http://localhost:8025
+```
+
+MinIO Console is available at:
+
+```text
+http://localhost:9001
+```
+
+### API documentation
+
+Interactive API documentation is protected with HTTP Basic Authentication.
+
+Swagger UI:
+
+```text
+http://localhost:8000/docs
+```
+
+ReDoc:
+
+```text
+http://localhost:8000/redoc
+```
+
+OpenAPI schema:
+
+```text
+http://localhost:8000/openapi.json
+```
+
+Documentation access credentials are configured through the environment variables
+defined in `.env.example`.
+
+The documentation authentication is separate from the application's JWT authentication.
+
+### Health check
+
+The application exposes a public health endpoint:
+
+```text
+GET /health
+```
+
+Example:
+
+```bash
+curl http://localhost:8000/health
+```
+
+Expected response:
+
+```json
+{"status":"ok"}
+```
+
+## Locally with Poetry
+
+Install dependencies:
 
 ```bash
 poetry install
-cp .env.example .env   # adjust DATABASE_URL etc. to point at a local Postgres, or use sqlite for a quick spin
+```
+
+Create the environment file:
+
+```bash
+cp .env.example .env
+```
+
+Adjust `DATABASE_URL` and other environment variables for the local environment.
+
+Run the application:
+
+```bash
 poetry run uvicorn src.main:app --reload
 ```
 
-### Running tests
+## Running tests
+
+Run the complete test suite with coverage:
 
 ```bash
 poetry run pytest --cov=src --cov-report=term-missing
 ```
 
-Tests use an in-memory SQLite database (see `tests/conftest.py`), so no external
-services are required to run the suite. 119 tests currently cover accounts (registration,
-activation/resend, login/refresh/logout, password change/reset, role-based access),
-movies (catalog CRUD/search/filter/sort, genres/stars/directors, reactions, 10-point
-ratings, favorites, nested comments), the shopping cart (add/remove/clear, per-user
-scoping, moderator visibility, delete-movie cart guard), orders (placement from cart
-with purchased/pending exclusion rules, listing/detail/cancellation, moderator admin
-listing with filters), payments (Stripe checkout session creation, webhook idempotency,
-payment history, moderator refunds, admin listing with filters), and docs access
-control (HTTP Basic gating on /docs, /redoc, /openapi.json). The Stripe SDK itself is
-never called in tests — `src/payments/stripe_client.py` isolates it behind a thin
-wrapper that tests monkeypatch, and the webhook handler trusts a plain JSON body when
-`STRIPE_WEBHOOK_SECRET` is unset (local dev / tests) instead of requiring a real
-Stripe signature.
+Tests use an in-memory SQLite database where possible, so the test suite does not
+require a production PostgreSQL instance.
 
-### Database migrations
+The current test suite covers:
 
-Schema is owned entirely by Alembic — there is no `create_all()` fallback in the app
-itself. `docker-entrypoint.sh` runs `alembic upgrade head` automatically before the
-`app` service starts (both locally via `docker compose up` and on every EC2 deploy),
-so the running schema is always in sync with `alembic/versions/`. Only the `app`
-service runs migrations; `celery_worker`/`celery_beat` don't, to avoid several
-containers racing to apply them concurrently on the same deploy.
+* user registration and activation
+* activation token resend
+* login / refresh / logout
+* password change
+* password reset
+* role-based access control
+* movies catalog
+* genres
+* actors and directors
+* search, filtering and sorting
+* reactions
+* 10-point ratings
+* favorites
+* nested comments
+* shopping cart
+* per-user cart isolation
+* moderator visibility
+* movie deletion cart protection
+* order placement
+* order lifecycle
+* order cancellation
+* moderator order listing and filtering
+* Stripe checkout sessions
+* Stripe webhook handling
+* payment history
+* refunds
+* administrator order/payment listing
+* protected API documentation
 
-To add a new migration after changing a model:
+The Stripe SDK is isolated behind a thin wrapper, allowing the tests to run without
+calling the real Stripe API.
+
+## Database migrations
+
+Database schema changes are managed exclusively with Alembic.
+
+Create a new migration after changing SQLAlchemy models:
 
 ```bash
 poetry run alembic revision --autogenerate -m "add xyz table"
+```
+
+Apply migrations:
+
+```bash
 poetry run alembic upgrade head
 ```
 
-Note: `alembic/env.py` imports every module that defines models (`src.accounts.models`,
-`src.movies.models`, ...) specifically so autogenerate can see them — `Base.metadata`
-is empty until those modules are imported somewhere, and a missing import there
-silently produces an empty, no-op migration instead of an error.
+Check the current database revision:
+
+```bash
+poetry run alembic current
+```
+
+Check the latest available revision:
+
+```bash
+poetry run alembic heads
+```
+
+The production database on AWS EC2 is migrated explicitly during deployment before
+the application is restarted.
+
+The Alembic environment imports all modules containing SQLAlchemy models so that
+`Base.metadata` contains the complete schema during autogeneration.
 
 ## API documentation — Accounts module (`/api/v1/accounts`)
 
-Full request/response schemas are always available live via Swagger (`/docs`); below is
-a narrative summary of what each custom endpoint does and why.
+Full request/response schemas are available through the protected Swagger UI.
 
-| Method & Path | Auth | Description |
-|---|---|---|
-| `POST /register` | — | Registers a new user (`email`, `password`). Password must satisfy the complexity policy (≥8 chars, upper/lower/digit/special char). Creates the user **inactive**, issues a 24h `ActivationToken`, and sends an activation email with a link `FRONTEND_URL/activate?email=...&token=...`. 409 if the email is taken. |
-| `POST /activate` | — | Body: `email`, `token`. Activates the account if the token matches and hasn't expired. Deletes the token on success. 400 on invalid/expired token. |
-| `POST /resend-activation` | — | Body: `email`. Issues a fresh 24h token (invalidating the old one) and resends the email. Always returns 200 with a generic message to avoid leaking whether an email is registered. |
-| `POST /login` | — | Body: `email`, `password`. Requires an **active** account. Returns a JWT `access_token` (15 min TTL) and `refresh_token` (7 days TTL, persisted server-side so it can be revoked). |
-| `POST /refresh` | — | Body: `refresh_token`. Returns a new `access_token` if the refresh token is valid, unexpired, and not revoked. |
-| `POST /logout` | — | Body: `refresh_token`. Deletes the stored refresh token, revoking that session. |
-| `GET /me` | Bearer access token | Returns the authenticated user's profile. |
-| `POST /change-password` | Bearer access token | Body: `old_password`, `password` (new). Verifies the old password, validates the new one against the complexity policy, updates the hash. |
-| `POST /password-reset/request` | — | Body: `email`. If the account exists and is active, issues a `PasswordResetToken` and emails a reset link. Always returns a generic 200 to prevent account enumeration. |
-| `POST /password-reset/confirm` | — | Body: `email`, `token`, `password` (new). Sets the new password without requiring the old one, if the token is valid and unexpired. Token is single-use. |
-| `PATCH /users/{user_id}/group` | Bearer access token, **ADMIN only** | Body: `{"group": "USER" \| "MODERATOR" \| "ADMIN"}`. Reassigns a user's role. 403 for non-admins. |
-| `POST /users/{user_id}/activate` | Bearer access token, **ADMIN only** | Manually marks a user as active (e.g., support workaround), deleting any pending activation token. |
+| Method & Path                    | Auth         | Description                                                     |
+| -------------------------------- | ------------ | --------------------------------------------------------------- |
+| `POST /register`                 | —            | Registers a new user and sends an activation email.             |
+| `POST /activate`                 | —            | Activates a user account using an activation token.             |
+| `POST /resend-activation`        | —            | Generates and sends a new activation token.                     |
+| `POST /login`                    | —            | Authenticates an active user and returns access/refresh tokens. |
+| `POST /refresh`                  | —            | Creates a new access token from a valid refresh token.          |
+| `POST /logout`                   | —            | Revokes a refresh token.                                        |
+| `GET /me`                        | Bearer token | Returns the authenticated user's profile.                       |
+| `POST /change-password`          | Bearer token | Changes the authenticated user's password.                      |
+| `POST /password-reset/request`   | —            | Requests a password reset token.                                |
+| `POST /password-reset/confirm`   | —            | Resets a password using a valid reset token.                    |
+| `PATCH /users/{user_id}/group`   | ADMIN        | Changes a user's role.                                          |
+| `POST /users/{user_id}/activate` | ADMIN        | Manually activates a user account.                              |
 
 ### Roles
 
-- **USER** — base catalog/interface access.
-- **MODERATOR** — everything USER has, plus movie/genre/actor CRUD and sales visibility (movie/genre/actor CRUD implemented in `feature/movies-catalog`; sales visibility lands with `feature/orders`).
-- **ADMIN** — everything MODERATOR has, plus user management (`/users/{id}/group`, `/users/{id}/activate`).
+* **USER** — base catalog and application access.
+* **MODERATOR** — USER permissions plus movie, genre, actor management and sales visibility.
+* **ADMIN** — MODERATOR permissions plus user management.
 
-### Background jobs (Celery Beat)
+## Background jobs
 
-- `accounts.cleanup_expired_activation_tokens` — hourly, deletes expired `ActivationToken` rows.
-- `accounts.cleanup_expired_password_reset_tokens` — hourly, deletes expired `PasswordResetToken` rows.
+Celery Beat runs scheduled maintenance tasks, including:
 
-## Tech stack
+* cleanup of expired activation tokens
+* cleanup of expired password reset tokens
 
-FastAPI · SQLAlchemy 2.0 (async) · PostgreSQL · Alembic · Celery + Redis · MinIO ·
-Stripe · Poetry · Docker Compose · pytest/pytest-asyncio/pytest-cov · GitHub Actions CI
-(flake8, black, mypy, pytest+coverage, deploy to EC2 on `main`).
+Celery Worker processes asynchronous background jobs.
+
+## Production deployment
+
+The application is deployed to an AWS EC2 Ubuntu 24.04 instance using Docker Compose.
+
+Production architecture:
+
+```text
+Internet
+   |
+   | HTTP :80 / HTTPS :443
+   v
+ Nginx
+   |
+   | reverse proxy
+   v
+FastAPI :8000
+   |
+   +-----------------------------+
+   |                             |
+   v                             v
+PostgreSQL                    Redis
+   |                             |
+   +-----------------------------+
+   |
+   +-- MinIO
+   |
+   +-- MailHog
+   |
+   +-- Celery Worker
+   |
+   +-- Celery Beat
+```
+
+The application source code is deployed on the EC2 instance at:
+
+```text
+/home/ubuntu/src/FastAPI_online_cinema
+```
+
+Nginx acts as a reverse proxy and forwards incoming HTTP requests to the FastAPI
+application.
+
+The AWS Security Group exposes HTTP/HTTPS and SSH. Internal application services
+such as PostgreSQL, Redis and MinIO are not exposed through the AWS Security Group.
+
+### Production environment
+
+Production environment variables are stored in `.env` directly on the EC2 instance.
+
+The `.env` file is intentionally excluded from Git:
+
+```text
+.env
+```
+
+Production secrets are therefore not committed to the repository.
+
+## Continuous Integration
+
+GitHub Actions runs the CI pipeline on pushes and pull requests.
+
+The pipeline performs:
+
+1. dependency installation
+2. flake8 linting
+3. Black formatting check
+4. mypy type checking
+5. pytest test suite
+6. test coverage generation
+7. coverage artifact upload
+
+The CI pipeline uses Python 3.13 and Poetry.
+
+## Continuous Deployment
+
+Successful pushes to the `main` branch trigger deployment to AWS EC2 after all CI
+checks pass.
+
+The deployment process:
+
+```text
+git push main
+      |
+      v
+GitHub Actions
+      |
+      v
+Lint
+      |
+      v
+Black
+      |
+      v
+mypy
+      |
+      v
+pytest
+      |
+      v
+SSH to AWS EC2
+      |
+      v
+git pull origin main
+      |
+      v
+docker compose up -d --build
+      |
+      v
+alembic upgrade head
+      |
+      v
+restart FastAPI
+```
+
+The deployment connects to EC2 using GitHub Actions secrets:
+
+```text
+EC2_HOST
+EC2_USERNAME
+EC2_SSH_KEY
+```
+
+The production `.env` file is not transferred through GitHub Actions.
+
+## Security considerations
+
+The following files and secrets must never be committed to Git:
+
+```text
+.env
+*.pem
+*.key
+```
+
+Production secrets such as JWT keys and Stripe credentials must be stored outside
+the repository.
+
+The API documentation is protected with HTTP Basic Authentication.
+
+The AWS Security Group should expose only the ports required for the public
+application and administration.
+
+## Repository structure
+
+```text
+FastAPI_online_cinema/
+├── .github/
+│   └── workflows/
+├── alembic/
+│   ├── versions/
+│   └── env.py
+├── src/
+│   ├── accounts/
+│   ├── cart/
+│   ├── movies/
+│   ├── orders/
+│   ├── payments/
+│   ├── celery_app/
+│   ├── config.py
+│   ├── database.py
+│   └── main.py
+├── tests/
+├── .env.example
+├── .gitignore
+├── Dockerfile
+├── docker-compose.yml
+├── docker-entrypoint.sh
+├── poetry.lock
+├── pyproject.toml
+└── README.md
+```
+
+## License
+
+This project is developed as a backend engineering portfolio project.
