@@ -172,4 +172,4 @@ cython_debug/
 .idea/
 
 # PyPI configuration file
-.pypirc
+.pypirc.DS_Store
