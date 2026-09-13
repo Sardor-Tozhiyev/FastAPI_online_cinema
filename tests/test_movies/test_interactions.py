@@ -30,7 +30,7 @@ async def _create_movie(
     return response.json()["id"]
 
 
-# --- Reactions ------------------------------------
+# --- Reactions -----------------------------------------------------------------------
 
 
 async def test_like_and_dislike_counts_reflected_in_detail(
@@ -138,7 +138,7 @@ async def test_reaction_requires_authentication(
     assert response.status_code == 401
 
 
-# --- Ratings -------------------------------
+# --- Ratings ------------------------------------------------------------------------
 
 
 async def test_rate_movie_computes_average(
@@ -229,7 +229,7 @@ async def test_rate_movie_rejects_out_of_range_values(
     assert too_low.status_code == 422
 
 
-# --- Favorites --------------------------------------
+# --- Favorites -----------------------------------------------------------------------
 
 
 async def test_add_list_and_remove_favorite(

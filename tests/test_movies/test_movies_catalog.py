@@ -1,5 +1,3 @@
-from typing import TypedDict
-
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,7 +22,7 @@ async def _moderator_headers(
     return headers
 
 
-# --- Create -------------------------------
+# --- Create ------------------------------------------------------------------------
 
 
 async def test_moderator_can_create_movie_with_relations(
@@ -124,7 +122,7 @@ async def test_create_duplicate_movie_returns_409(
     assert second.status_code == 409
 
 
-# --- Read ----------------------------------------
+# --- Read ------------------------------------------------------------------------
 
 
 async def test_get_movie_detail_and_404(
@@ -151,7 +149,7 @@ async def test_get_movie_detail_and_404(
     assert missing.status_code == 404
 
 
-# --- Update / delete ----------------------------------
+# --- Update / delete ---------------------------------------------------------------
 
 
 async def test_moderator_can_update_movie(
@@ -241,26 +239,18 @@ async def test_moderator_can_delete_movie(
     assert again.status_code == 404
 
 
-# --- Catalog: pagination / filter / search / sort --------------------------
-
-
-class MovieSeed(TypedDict):
-    name: str
-    year: int
-    imdb: float
-    price: float
+# --- Catalog: pagination / filter / search / sort ------------------------------------
 
 
 async def _seed_catalog(
     client: AsyncClient, headers: dict[str, str], certification_id: int
 ) -> None:
-    movies: list[MovieSeed] = [
+    movies = [
         {"name": "Alpha", "year": 2010, "imdb": 6.0, "price": 5.0},
         {"name": "Beta", "year": 2015, "imdb": 7.5, "price": 15.0},
         {"name": "Gamma", "year": 2020, "imdb": 9.0, "price": 10.0},
         {"name": "Delta Heist", "year": 2020, "imdb": 8.0, "price": 20.0},
     ]
-
     for m in movies:
         payload = movie_payload(
             certification_id,
@@ -270,10 +260,8 @@ async def _seed_catalog(
             price=m["price"],
         )
         payload["description"] = f"A story about {m['name']}."
-
         if m["name"] == "Delta Heist":
             payload["description"] = "A thrilling museum heist unfolds."
-
         response = await client.post(
             "/api/v1/movies", json=payload, headers=headers
         )

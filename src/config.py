@@ -53,5 +53,10 @@ class Settings(BaseSettings):
     # Frontend base URL, used to build activation / reset links
     FRONTEND_URL: str = "http://localhost:3000"
 
+    # API docs (/docs, /redoc, /openapi.json) are gated behind HTTP Basic
+    # Auth, separate from the app's own JWT scheme, so they aren't public.
+    DOCS_USERNAME: str = "admin"
+    DOCS_PASSWORD: str = "change-me-in-prod"
+
 
 settings = Settings()
