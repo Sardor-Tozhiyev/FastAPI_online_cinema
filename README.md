@@ -1,128 +1,160 @@
-# Online Cinema
+# FastAPI Online Cinema
 
-Digital platform for browsing, purchasing, and watching movies online. Built with
-FastAPI (async), PostgreSQL, Celery/Redis, MinIO (S3-compatible storage), and Stripe.
+A backend REST API for an online cinema platform built with FastAPI.
 
-## Project status / roadmap
+The project provides user authentication, movie management, shopping cart functionality, orders, payments, background tasks, object storage, and administrative functionality.
 
-This repository is built incrementally, one feature branch at a time:
+## Project Status
 
-| Branch                 | Scope                                                     | Status |
-| ---------------------- | --------------------------------------------------------- | ------ |
-| `project-setup`        | Repo skeleton, Docker, Poetry, CI, base app               | ✅ done |
-| `accounts-auth`        | Registration, activation, JWT auth, roles                 | ✅ done |
-| `movies-catalog`       | Movies, genres, actors, directors, search/filter          | ✅ done |
-| `shopping-cart`        | Cart CRUD                                                 | ✅ done |
-| `orders`               | Order placement & lifecycle                               | ✅ done |
-| `payments-stripe`      | Stripe checkout & webhooks                                | ✅ done |
-| `restrict-docs-access` | Gate `/docs`, `/redoc`, `/openapi.json` behind HTTP Basic | ✅ done |
+The application is deployed to an AWS EC2 instance using Docker Compose.
 
-## Tech stack
+The production deployment includes:
+
+* FastAPI
+* PostgreSQL
+* Redis
+* Celery worker
+* Celery Beat
+* MinIO
+* MailHog
+* Nginx
+* GitHub Actions CI/CD
+
+The application is currently available over HTTP through the EC2 public IP.
+
+## Tech Stack
+
+* **Python 3.13**
+* **FastAPI**
+* **SQLAlchemy 2.0**
+* **Alembic**
+* **PostgreSQL 16**
+* **Redis 7**
+* **Celery**
+* **Pydantic**
+* **JWT authentication**
+* **Stripe**
+* **MinIO / S3-compatible storage**
+* **MailHog**
+* **Docker / Docker Compose**
+* **Nginx**
+* **Poetry**
+* **pytest**
+* **pytest-cov**
+* **flake8**
+* **Black**
+* **mypy**
+* **GitHub Actions**
+* **AWS EC2**
+
+## Main Features
+
+### Authentication
+
+* User registration
+* JWT authentication
+* Access and refresh tokens
+* Email activation
+* Password reset
+* Password change
+* Role-based access control
+
+### Movies
+
+* Movie creation
+* Movie listing
+* Movie details
+* Movie updating
+* Movie deletion
+* Filtering and pagination
+* Movie certifications
+
+### Shopping Cart
+
+* Add movies to cart
+* Remove movies from cart
+* Update cart items
+* View current cart
+
+### Orders
+
+* Create orders from the shopping cart
+* Order history
+* Order details
+* Order filtering
+* Administrative order management
+
+### Payments
+
+* Stripe payment integration
+* Payment status handling
+* Stripe webhook support
+
+### Background Tasks
+
+Celery is used for asynchronous and scheduled tasks.
+
+The deployment includes:
+
+* Celery Worker
+* Celery Beat
+* Redis as the message broker
+
+### File Storage
+
+MinIO provides S3-compatible object storage for application files.
+
+### Email
+
+MailHog is used as a development/testing SMTP server.
+
+## Project Structure
+
+```text
+FastAPI_online_cinema/
+├── alembic/
+│   ├── versions/
+│   └── env.py
+├── src/
+│   ├── accounts/
+│   ├── cart/
+│   ├── celery_app/
+│   ├── movies/
+│   ├── orders/
+│   ├── payments/
+│   ├── ...
+│   └── main.py
+├── tests/
+├── .github/
+│   └── workflows/
+├── .env.example
+├── .gitignore
+├── alembic.ini
+├── docker-compose.yml
+├── docker-entrypoint.sh
+├── Dockerfile
+├── poetry.lock
+├── pyproject.toml
+└── README.md
+```
+
+## Requirements
+
+For local development:
 
 * Python 3.13
-* FastAPI
-* SQLAlchemy 2.0 (async)
-* PostgreSQL 16
-* Alembic
-* Celery + Redis
-* MinIO (S3-compatible object storage)
-* Stripe
 * Poetry
-* Docker / Docker Compose
-* Nginx
-* pytest / pytest-asyncio / pytest-cov
-* flake8
-* Black
-* mypy
-* GitHub Actions
-* AWS EC2
+* Docker
+* Docker Compose
 
-## Getting started
+## Local Development
 
-### With Docker (recommended)
-
-Create a local environment file:
+Clone the repository:
 
 ```bash
-cp .env.example .env
+git clone https://github.com/Sardor-Tozhiyev/FastAPI_online_cinema.git
+cd FastAPI_online_cinema
 ```
-
-Then start the application:
-
-```bash
-docker compose up --build
-```
-
-The following services are started:
-
-* `app` — FastAPI application on port `8000`
-* `db` — PostgreSQL
-* `redis` — Redis
-* `celery_worker` — Celery background worker
-* `celery_beat` — scheduled Celery tasks
-* `minio` — S3-compatible object storage
-* `mailhog` — local email testing server
-
-MailHog Web UI is available at:
-
-```text
-http://localhost:8025
-```
-
-MinIO Console is available at:
-
-```text
-http://localhost:9001
-```
-
-### API documentation
-
-Interactive API documentation is protected with HTTP Basic Authentication.
-
-Swagger UI:
-
-```text
-http://localhost:8000/docs
-```
-
-ReDoc:
-
-```text
-http://localhost:8000/redoc
-```
-
-OpenAPI schema:
-
-```text
-http://localhost:8000/openapi.json
-```
-
-Documentation access credentials are configured through the environment variables
-defined in `.env.example`.
-
-The documentation authentication is separate from the application's JWT authentication.
-
-### Health check
-
-The application exposes a public health endpoint:
-
-```text
-GET /health
-```
-
-Example:
-
-```bash
-curl http://localhost:8000/health
-```
-
-Expected response:
-
-```json
-{"status":"ok"}
-```
-
-## Locally with Poetry
 
 Install dependencies:
 
@@ -136,7 +168,19 @@ Create the environment file:
 cp .env.example .env
 ```
 
-Adjust `DATABASE_URL` and other environment variables for the local environment.
+Update `.env` with the required local configuration.
+
+Start the infrastructure services:
+
+```bash
+docker compose up -d
+```
+
+Apply database migrations:
+
+```bash
+poetry run alembic upgrade head
+```
 
 Run the application:
 
@@ -144,234 +188,188 @@ Run the application:
 poetry run uvicorn src.main:app --reload
 ```
 
-## Running tests
+The application will be available at:
 
-Run the complete test suite with coverage:
+```text
+http://127.0.0.1:8000
+```
+
+## Docker Compose
+
+The project provides a complete Docker Compose environment.
+
+Start all services:
+
+```bash
+docker compose up -d --build
+```
+
+Check service status:
+
+```bash
+docker compose ps
+```
+
+View application logs:
+
+```bash
+docker compose logs app
+```
+
+Follow application logs:
+
+```bash
+docker compose logs -f app
+```
+
+Stop the services:
+
+```bash
+docker compose down
+```
+
+## Database Migrations
+
+Alembic is used for database migrations.
+
+Check the current migration:
+
+```bash
+alembic current
+```
+
+Show available migration heads:
+
+```bash
+alembic heads
+```
+
+Apply all migrations:
+
+```bash
+alembic upgrade head
+```
+
+Create a new migration:
+
+```bash
+alembic revision --autogenerate -m "migration description"
+```
+
+When deploying to EC2, database migrations should be applied after updating the application code.
+
+## API Documentation
+
+FastAPI provides interactive API documentation.
+
+Depending on the application environment and documentation access settings:
+
+```text
+/docs
+/redoc
+```
+
+The documentation endpoints are protected by the application's documentation access dependency.
+
+## Health Check
+
+The application provides a health endpoint:
+
+```text
+GET /health
+```
+
+Example response:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+The endpoint can be used to verify that the application is running correctly.
+
+## Testing
+
+Run the test suite:
+
+```bash
+poetry run pytest
+```
+
+Run tests with coverage:
 
 ```bash
 poetry run pytest --cov=src --cov-report=term-missing
 ```
 
-Tests use an in-memory SQLite database where possible, so the test suite does not
-require a production PostgreSQL instance.
+## Code Quality
 
-The current test suite covers:
-
-* user registration and activation
-* activation token resend
-* login / refresh / logout
-* password change
-* password reset
-* role-based access control
-* movies catalog
-* genres
-* actors and directors
-* search, filtering and sorting
-* reactions
-* 10-point ratings
-* favorites
-* nested comments
-* shopping cart
-* per-user cart isolation
-* moderator visibility
-* movie deletion cart protection
-* order placement
-* order lifecycle
-* order cancellation
-* moderator order listing and filtering
-* Stripe checkout sessions
-* Stripe webhook handling
-* payment history
-* refunds
-* administrator order/payment listing
-* protected API documentation
-
-The Stripe SDK is isolated behind a thin wrapper, allowing the tests to run without
-calling the real Stripe API.
-
-## Database migrations
-
-Database schema changes are managed exclusively with Alembic.
-
-Create a new migration after changing SQLAlchemy models:
+### Flake8
 
 ```bash
-poetry run alembic revision --autogenerate -m "add xyz table"
+poetry run flake8 src tests --max-line-length=100 --extend-ignore=E203,W503
 ```
 
-Apply migrations:
+### Black
+
+Check formatting:
 
 ```bash
-poetry run alembic upgrade head
+poetry run black --check src tests
 ```
 
-Check the current database revision:
+Format the project:
 
 ```bash
-poetry run alembic current
+poetry run black src tests
 ```
 
-Check the latest available revision:
+### Mypy
 
 ```bash
-poetry run alembic heads
+poetry run mypy src
 ```
 
-The production database on AWS EC2 is migrated explicitly during deployment before
-the application is restarted.
+## Continuous Integration
 
-The Alembic environment imports all modules containing SQLAlchemy models so that
-`Base.metadata` contains the complete schema during autogeneration.
+GitHub Actions automatically runs checks for pushes and pull requests.
 
-## API documentation — Accounts module (`/api/v1/accounts`)
+The CI pipeline includes:
 
-Full request/response schemas are available through the protected Swagger UI.
+1. Installing Python 3.13
+2. Installing Poetry
+3. Installing project dependencies
+4. Running flake8
+5. Checking Black formatting
+6. Running mypy
+7. Running pytest
+8. Generating test coverage
+9. Uploading the coverage report
 
-| Method & Path                    | Auth         | Description                                                     |
-| -------------------------------- | ------------ | --------------------------------------------------------------- |
-| `POST /register`                 | —            | Registers a new user and sends an activation email.             |
-| `POST /activate`                 | —            | Activates a user account using an activation token.             |
-| `POST /resend-activation`        | —            | Generates and sends a new activation token.                     |
-| `POST /login`                    | —            | Authenticates an active user and returns access/refresh tokens. |
-| `POST /refresh`                  | —            | Creates a new access token from a valid refresh token.          |
-| `POST /logout`                   | —            | Revokes a refresh token.                                        |
-| `GET /me`                        | Bearer token | Returns the authenticated user's profile.                       |
-| `POST /change-password`          | Bearer token | Changes the authenticated user's password.                      |
-| `POST /password-reset/request`   | —            | Requests a password reset token.                                |
-| `POST /password-reset/confirm`   | —            | Resets a password using a valid reset token.                    |
-| `PATCH /users/{user_id}/group`   | ADMIN        | Changes a user's role.                                          |
-| `POST /users/{user_id}/activate` | ADMIN        | Manually activates a user account.                              |
+The CI workflow must pass before the deployment job runs.
 
-### Roles
+## Continuous Deployment
 
-* **USER** — base catalog and application access.
-* **MODERATOR** — USER permissions plus movie, genre, actor management and sales visibility.
-* **ADMIN** — MODERATOR permissions plus user management.
+The project uses GitHub Actions for automatic deployment to AWS EC2.
 
-## Background jobs
+Deployment is triggered automatically after a successful CI run when changes are pushed to the `main` branch.
 
-Celery Beat runs scheduled maintenance tasks, including:
+The deployment process:
 
-* cleanup of expired activation tokens
-* cleanup of expired password reset tokens
+1. GitHub Actions runs linting, formatting, type checking, and tests.
+2. GitHub Actions connects to the EC2 server through SSH.
+3. The latest `main` branch is pulled on the server.
+4. Docker Compose rebuilds the application containers.
+5. The updated services are started.
 
-Celery Worker processes asynchronous background jobs.
-
-## Production deployment
-
-The application is deployed to an AWS EC2 Ubuntu 24.04 instance using Docker Compose.
-
-Production architecture:
-
-```text
-Internet
-   |
-   | HTTP :80 / HTTPS :443
-   v
- Nginx
-   |
-   | reverse proxy
-   v
-FastAPI :8000
-   |
-   +-----------------------------+
-   |                             |
-   v                             v
-PostgreSQL                    Redis
-   |                             |
-   +-----------------------------+
-   |
-   +-- MinIO
-   |
-   +-- MailHog
-   |
-   +-- Celery Worker
-   |
-   +-- Celery Beat
-```
-
-The application source code is deployed on the EC2 instance at:
+The application is deployed to:
 
 ```text
 /home/ubuntu/src/FastAPI_online_cinema
 ```
 
-Nginx acts as a reverse proxy and forwards incoming HTTP requests to the FastAPI
-application.
-
-The AWS Security Group exposes HTTP/HTTPS and SSH. Internal application services
-such as PostgreSQL, Redis and MinIO are not exposed through the AWS Security Group.
-
-### Production environment
-
-Production environment variables are stored in `.env` directly on the EC2 instance.
-
-The `.env` file is intentionally excluded from Git:
-
-```text
-.env
-```
-
-Production secrets are therefore not committed to the repository.
-
-## Continuous Integration
-
-GitHub Actions runs the CI pipeline on pushes and pull requests.
-
-The pipeline performs:
-
-1. dependency installation
-2. flake8 linting
-3. Black formatting check
-4. mypy type checking
-5. pytest test suite
-6. test coverage generation
-7. coverage artifact upload
-
-The CI pipeline uses Python 3.13 and Poetry.
-
-## Continuous Deployment
-
-Successful pushes to the `main` branch trigger deployment to AWS EC2 after all CI
-checks pass.
-
-The deployment process:
-
-```text
-git push main
-      |
-      v
-GitHub Actions
-      |
-      v
-Lint
-      |
-      v
-Black
-      |
-      v
-mypy
-      |
-      v
-pytest
-      |
-      v
-SSH to AWS EC2
-      |
-      v
-git pull origin main
-      |
-      v
-docker compose up -d --build
-      |
-      v
-alembic upgrade head
-      |
-      v
-restart FastAPI
-```
-
-The deployment connects to EC2 using GitHub Actions secrets:
+The EC2 deployment uses GitHub Actions secrets:
 
 ```text
 EC2_HOST
@@ -379,56 +377,158 @@ EC2_USERNAME
 EC2_SSH_KEY
 ```
 
-The production `.env` file is not transferred through GitHub Actions.
+These values must be configured as GitHub repository secrets and must never be committed to the repository.
 
-## Security considerations
+## Production Architecture
 
-The following files and secrets must never be committed to Git:
+The current production architecture is:
 
 ```text
-.env
-*.pem
-*.key
+Internet
+   │
+   ▼
+AWS EC2
+   │
+   ▼
+Nginx :80
+   │
+   ▼
+FastAPI :8000
+   │
+   ├── PostgreSQL
+   ├── Redis
+   ├── Celery Worker
+   ├── Celery Beat
+   ├── MinIO
+   └── MailHog
 ```
 
-Production secrets such as JWT keys and Stripe credentials must be stored outside
-the repository.
+Nginx acts as a reverse proxy in front of the FastAPI application.
 
-The API documentation is protected with HTTP Basic Authentication.
+The application is currently served over HTTP using the EC2 public IP.
 
-The AWS Security Group should expose only the ports required for the public
-application and administration.
+No custom domain or HTTPS/SSL configuration is currently used.
 
-## Repository structure
+## EC2 Deployment
+
+The EC2 server runs Ubuntu 24.04.
+
+The project is located at:
 
 ```text
-FastAPI_online_cinema/
-├── .github/
-│   └── workflows/
-├── alembic/
-│   ├── versions/
-│   └── env.py
-├── src/
-│   ├── accounts/
-│   ├── cart/
-│   ├── movies/
-│   ├── orders/
-│   ├── payments/
-│   ├── celery_app/
-│   ├── config.py
-│   ├── database.py
-│   └── main.py
-├── tests/
-├── .env.example
-├── .gitignore
-├── Dockerfile
-├── docker-compose.yml
-├── docker-entrypoint.sh
-├── poetry.lock
-├── pyproject.toml
-└── README.md
+/home/ubuntu/src/FastAPI_online_cinema
+```
+
+Useful commands on the server:
+
+```bash
+cd /home/ubuntu/src/FastAPI_online_cinema
+```
+
+Check running services:
+
+```bash
+docker compose ps
+```
+
+Check application logs:
+
+```bash
+docker compose logs app --tail=50
+```
+
+Check Nginx:
+
+```bash
+sudo systemctl status nginx --no-pager
+```
+
+Check the application through Nginx:
+
+```bash
+curl -i http://127.0.0.1/health
+```
+
+Check the public endpoint:
+
+```bash
+curl -i http://<EC2_PUBLIC_IP>/health
+```
+
+## Environment Variables
+
+Production environment variables are stored directly on the EC2 server in `.env`.
+
+The `.env` file is excluded from Git using `.gitignore`.
+
+Sensitive values such as:
+
+* JWT secret
+* Stripe secret key
+* Stripe webhook secret
+* S3 credentials
+* database credentials
+
+must not be committed to GitHub.
+
+Use `.env.example` as a template for required environment variables.
+
+## Security Considerations
+
+Production secrets must never be stored in the repository.
+
+GitHub Actions deployment credentials are stored using GitHub encrypted secrets.
+
+The EC2 instance uses AWS Security Groups to control inbound traffic.
+
+The public application entry point is Nginx on port `80`.
+
+Internal services such as PostgreSQL, Redis, MinIO, and MailHog are not intended to be accessed directly from the public Internet.
+
+## Useful Commands
+
+Check all Docker containers:
+
+```bash
+docker ps
+```
+
+Check Compose services:
+
+```bash
+docker compose ps
+```
+
+Restart the application:
+
+```bash
+docker compose restart app
+```
+
+Rebuild and restart:
+
+```bash
+docker compose up -d --build
+```
+
+View all logs:
+
+```bash
+docker compose logs --tail=100
+```
+
+Check Nginx configuration:
+
+```bash
+sudo nginx -t
+```
+
+Reload Nginx:
+
+```bash
+sudo systemctl reload nginx
 ```
 
 ## License
 
-This project is developed as a backend engineering portfolio project.
+This project is intended for educational and portfolio purposes.
