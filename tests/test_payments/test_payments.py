@@ -2,8 +2,8 @@ import stripe
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.accounts.models import UserGroupEnum
-from src.movies.models import Certification
+from accounts.models import UserGroupEnum
+from movies.models import Certification
 from tests.test_cart.conftest import create_movie
 from tests.test_movies.conftest import create_user_headers
 from tests.test_payments.conftest import (
@@ -17,7 +17,7 @@ def _raise_stripe_error(**kwargs):
     raise stripe.error.StripeError("simulated Stripe outage")
 
 
-# --- Checkout session creation --------------------------------------------------------
+# --- Checkout session creation --------------------
 
 
 async def test_create_checkout_session(
@@ -28,7 +28,7 @@ async def test_create_checkout_session(
     monkeypatch,
 ):
     monkeypatch.setattr(
-        "src.payments.stripe_client.create_checkout_session",
+        "payments.stripe_client.create_checkout_session",
         fake_checkout_session,
     )
     movie_id = await create_movie(
@@ -56,7 +56,7 @@ async def test_checkout_session_for_others_order_returns_404(
     monkeypatch,
 ):
     monkeypatch.setattr(
-        "src.payments.stripe_client.create_checkout_session",
+        "payments.stripe_client.create_checkout_session",
         fake_checkout_session,
     )
     movie_id = await create_movie(
@@ -84,7 +84,7 @@ async def test_checkout_session_for_non_pending_order_returns_400(
     monkeypatch,
 ):
     monkeypatch.setattr(
-        "src.payments.stripe_client.create_checkout_session",
+        "payments.stripe_client.create_checkout_session",
         fake_checkout_session,
     )
     movie_id = await create_movie(
@@ -122,7 +122,7 @@ async def test_checkout_session_stripe_error_returns_502(
     monkeypatch,
 ):
     monkeypatch.setattr(
-        "src.payments.stripe_client.create_checkout_session",
+        "payments.stripe_client.create_checkout_session",
         _raise_stripe_error,
     )
     movie_id = await create_movie(
@@ -139,7 +139,7 @@ async def test_checkout_session_stripe_error_returns_502(
     assert response.status_code == 502
 
 
-# --- Webhook -------------------------------------------------------------------------
+# --- Webhook --------------------------------
 
 
 async def test_webhook_marks_order_paid_and_creates_payment(
@@ -217,7 +217,7 @@ async def test_webhook_with_invalid_payload_returns_400(client: AsyncClient):
     assert response.status_code == 400
 
 
-# --- History / detail permissions ------------------------------------------------------
+# --- History / detail permissions -------------------
 
 
 async def test_payments_require_authentication(client: AsyncClient):
@@ -274,7 +274,7 @@ async def test_get_payment_detail_permissions(
     assert missing.status_code == 404
 
 
-# --- Refunds ---------------------------------------------------------------------------
+# --- Refunds ------------------------------------
 
 
 async def test_moderator_can_refund_payment(
@@ -286,7 +286,7 @@ async def test_moderator_can_refund_payment(
 ):
     refund_calls = []
     monkeypatch.setattr(
-        "src.payments.stripe_client.create_refund",
+        "payments.stripe_client.create_refund",
         lambda **kwargs: refund_calls.append(kwargs),
     )
 
@@ -335,7 +335,7 @@ async def test_cannot_refund_already_refunded_payment(
     monkeypatch,
 ):
     monkeypatch.setattr(
-        "src.payments.stripe_client.create_refund", lambda **kwargs: None
+        "payments.stripe_client.create_refund", lambda **kwargs: None
     )
     movie_id = await create_movie(
         client, db_session, strong_password, certification.id, "doublerefund"
@@ -389,7 +389,7 @@ async def test_non_moderator_cannot_refund(
     assert response.status_code == 403
 
 
-# --- Admin listing ---------------------------------------------------------------------
+# --- Admin listing ----------------------------------
 
 
 async def test_admin_payment_listing_requires_moderator(
@@ -410,7 +410,7 @@ async def test_admin_payment_listing_filters_by_user_and_status(
     monkeypatch,
 ):
     monkeypatch.setattr(
-        "src.payments.stripe_client.create_refund", lambda **kwargs: None
+        "payments.stripe_client.create_refund", lambda **kwargs: None
     )
     movie_a = await create_movie(
         client, db_session, strong_password, certification.id, "adminpayA"

@@ -1,7 +1,7 @@
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.accounts.models import UserGroupEnum
+from accounts.models import UserGroupEnum
 
 from tests.test_movies.conftest import (  # noqa: F401
     certification,

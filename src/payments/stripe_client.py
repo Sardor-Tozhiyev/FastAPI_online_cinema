@@ -13,7 +13,7 @@ from typing import Any
 
 import stripe
 
-from src.config import settings
+from config import settings
 
 
 def _configured_stripe():
@@ -22,11 +22,11 @@ def _configured_stripe():
 
 
 def create_checkout_session(
-        *,
-        order_id: int,
-        line_items: list[dict[str, Any]],
-        success_url: str,
-        cancel_url: str,
+    *,
+    order_id: int,
+    line_items: list[dict[str, Any]],
+    success_url: str,
+    cancel_url: str,
 ) -> Any:
     client = _configured_stripe()
     return client.checkout.Session.create(
@@ -38,22 +38,17 @@ def create_checkout_session(
     )
 
 
-def construct_webhook_event(
-        payload: bytes,
-        sig_header: str | None
-) -> dict:
+def construct_webhook_event(payload: bytes, sig_header: str | None) -> dict:
     if not settings.STRIPE_WEBHOOK_SECRET:
         # No webhook secret configured (local dev / tests): trust the body
         # as-is instead of verifying a Stripe signature.
         return json.loads(payload)
     event = stripe.Webhook.construct_event(
-        payload,
-        sig_header,
-        settings.STRIPE_WEBHOOK_SECRET
+        payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
     )
     return event if isinstance(event, dict) else event.to_dict()
 
 
-def create_refund(*, payment_intent_id: int) -> Any:
+def create_refund(*, payment_intent_id: str) -> Any:
     client = _configured_stripe()
     return client.Refund.create(payment_intent=payment_intent_id)

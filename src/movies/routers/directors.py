@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.accounts.dependencies import require_moderator
-from src.accounts.models import User
-from src.accounts.schemas import MessageResponse
-from src.database import get_db
-from src.movies.models import Director
-from src.movies.schemas import DirectorResponse, NamedEntityRequest
+from accounts.dependencies import require_moderator
+from accounts.models import User
+from accounts.schemas import MessageResponse
+from database import get_db
+from movies.models import Director
+from movies.schemas import DirectorResponse, NamedEntityRequest
 
 router = APIRouter(prefix="/api/v1/movies/directors", tags=["directors"])
 

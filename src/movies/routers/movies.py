@@ -7,12 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.elements import ColumnElement
 
-from src.accounts.dependencies import require_moderator
-from src.accounts.models import User
-from src.accounts.schemas import MessageResponse
-from src.cart.models import CartItem
-from src.database import get_db
-from src.movies.models import (
+from accounts.dependencies import require_moderator
+from accounts.models import User
+from accounts.schemas import MessageResponse
+from cart.models import CartItem
+from database import get_db
+from movies.models import (
     Certification,
     Director,
     Genre,
@@ -24,7 +24,7 @@ from src.movies.models import (
     MovieStar,
     Star,
 )
-from src.movies.schemas import (
+from movies.schemas import (
     CertificationResponse,
     MovieCreateRequest,
     MovieDetailResponse,

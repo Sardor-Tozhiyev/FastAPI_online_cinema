@@ -1,17 +1,24 @@
 import asyncio
+import sys
 from logging.config import fileConfig
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from src.accounts import models
-from src.movies import models
-from src.cart import models
-from src.orders import models
-from src.config import settings
-from src.database import Base
+from config import settings
+from database import Base
+
+
+import accounts.models
+import movies.models
+import cart.models
+import orders.models
+import payments.models
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)

@@ -4,10 +4,10 @@ from typing import cast
 
 from sqlalchemy.engine import CursorResult
 from sqlalchemy import delete
-from src.celery_app import celery_app
+from celery_app import celery_app
 
-from src.accounts.models import ActivationToken, PasswordResetToken
-from src.database import AsyncSessionLocal
+from accounts.models import ActivationToken, PasswordResetToken
+from database import AsyncSessionLocal
 
 
 async def _delete_expired(model) -> int:

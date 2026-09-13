@@ -2,18 +2,18 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.accounts.dependencies import get_current_user
-from src.accounts.models import User
-from src.accounts.schemas import MessageResponse
-from src.database import get_db
-from src.movies.models import Favorite, MovieRating, MovieReaction
-from src.movies.routers.movies import (
+from accounts.dependencies import get_current_user
+from accounts.models import User
+from accounts.schemas import MessageResponse
+from database import get_db
+from movies.models import Favorite, MovieRating, MovieReaction
+from movies.routers.movies import (
     SortField,
     SortOrder,
     _get_movie_or_404,
     _list_movies,
 )
-from src.movies.schemas import (
+from movies.schemas import (
     MovieListItemResponse,
     PaginatedResponse,
     RatingRequest,

@@ -10,9 +10,9 @@ order-sensitive, but are kept alongside for readability.
 
 from fastapi import APIRouter
 
-from src.movies.routers import comments, directors, genres, interactions
-from src.movies.routers import movies as movies_router_module
-from src.movies.routers import stars
+from movies.routers import comments, directors, genres, interactions
+from movies.routers import movies as movies_router_module
+from movies.routers import stars
 
 router = APIRouter()
 

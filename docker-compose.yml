@@ -46,6 +46,8 @@ services:
     build: .
     restart: unless-stopped
     env_file: .env
+    environment:
+      PYTHONPATH: /app/src
     depends_on:
       db:
         condition: service_healthy
@@ -59,8 +61,10 @@ services:
   celery_worker:
     build: .
     restart: unless-stopped
-    command: celery -A src.celery_app.celery_app worker --loglevel=info
+    command: celery -A celery_app.celery_app worker --loglevel=info
     env_file: .env
+    environment:
+      PYTHONPATH: /app/src
     depends_on:
       - redis
       - db
@@ -70,8 +74,10 @@ services:
   celery_beat:
     build: .
     restart: unless-stopped
-    command: celery -A src.celery_app.celery_app beat --loglevel=info
+    command: celery -A celery_app.celery_app beat --loglevel=info
     env_file: .env
+    environment:
+      PYTHONPATH: /app/src
     depends_on:
       - redis
       - db

@@ -10,9 +10,9 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import StaticPool
 
-from src.accounts.bootstrap import seed_user_groups
-from src.database import Base, get_db
-from src.main import app
+from accounts.bootstrap import seed_user_groups
+from database import Base, get_db
+from main import app
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -48,7 +48,8 @@ async def db_session(_session_maker) -> AsyncGenerator[AsyncSession, None]:
 @pytest_asyncio.fixture
 async def client(_session_maker) -> AsyncGenerator[AsyncClient, None]:
     # Mirrors production behaviour: each request gets its own fresh session,
-    # avoiding identity-map/staleness issues from sharing one session across requests.
+    # avoiding identity-map/staleness issues
+    # from sharing one session across requests.
     async def _override_get_db():
         async with _session_maker() as session:
             yield session

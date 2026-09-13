@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.accounts.models import UserGroup, UserGroupEnum
+from accounts.models import UserGroup, UserGroupEnum
 
 
 async def seed_user_groups(db: AsyncSession) -> None:

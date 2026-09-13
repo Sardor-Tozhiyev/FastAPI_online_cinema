@@ -12,7 +12,7 @@ Replace the body of `send_email`
 
 import logging
 
-from src.config import settings
+from config import settings
 
 logger = logging.getLogger("online_cinema.notifications")
 

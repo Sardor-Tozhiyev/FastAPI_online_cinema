@@ -5,9 +5,9 @@ from fastapi import Depends, status, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import selectinload
 
-from src.accounts.models import User, UserGroupEnum
-from src.accounts.security import decode_token
-from src.database import get_db
+from accounts.models import User, UserGroupEnum
+from accounts.security import decode_token
+from database import get_db
 
 # tokenUrl is documentation-only;
 # actual login endpoint accepts JSON, not form data.

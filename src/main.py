@@ -9,6 +9,7 @@ from accounts.routers import router as accounts_router
 from cart.routers import router as cart_router
 from config import settings
 from database import AsyncSessionLocal, Base, engine
+from docs_security import require_docs_access
 from movies.routers import router as movies_router
 from orders.routers import router as orders_router
 from payments.routers import router as payments_router
@@ -49,3 +50,27 @@ app.include_router(payments_router)
 @app.get("/health", tags=["health"], summary="Liveness probe")
 async def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/openapi.json", include_in_schema=False)
+async def openapi_json(_: str = Depends(require_docs_access)) -> dict:
+    return get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+
+
+@app.get("/docs", include_in_schema=False)
+async def swagger_docs(_: str = Depends(require_docs_access)):
+    return get_swagger_ui_html(
+        openapi_url="/openapi.json", title=f"{app.title} — Swagger UI"
+    )
+
+
+@app.get("/redoc", include_in_schema=False)
+async def redoc_docs(_: str = Depends(require_docs_access)):
+    return get_redoc_html(
+        openapi_url="/openapi.json", title=f"{app.title} — ReDoc"
+    )

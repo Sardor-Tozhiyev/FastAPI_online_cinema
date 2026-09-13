@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -11,7 +10,7 @@ class CartItemResponse(BaseModel):
     id: int
     movie_id: int
     name: str
-    price: Decimal
+    price: float
     year: int
     genres: list[str] = []
     added_at: datetime
@@ -26,7 +25,7 @@ class CartResponse(BaseModel):
     id: int
     user_id: int
     items: list[CartItemResponse]
-    total_price: Decimal
+    total_price: float
     item_count: int
 
 
@@ -35,5 +34,5 @@ class CartSummaryResponse(BaseModel):
 
     user_id: int
     item_count: int
-    total_price: Decimal
+    total_price: float
     items: list[CartItemResponse]

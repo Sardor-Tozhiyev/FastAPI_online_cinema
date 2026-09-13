@@ -7,14 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.elements import ColumnElement
 
-from src.accounts.dependencies import get_current_user, require_moderator
-from src.accounts.models import User
-from src.accounts.schemas import MessageResponse
-from src.cart.models import Cart, CartItem
-from src.database import get_db
-from src.movies.schemas import PaginatedResponse
-from src.orders.models import Order, OrderItem, OrderStatusEnum
-from src.orders.schemas import (
+from accounts.dependencies import get_current_user, require_moderator
+from accounts.models import User
+from accounts.schemas import MessageResponse
+from cart.models import Cart, CartItem
+from database import get_db
+from movies.schemas import PaginatedResponse
+from orders.models import Order, OrderItem, OrderStatusEnum
+from orders.schemas import (
     OrderCreateResponse,
     OrderListItemResponse,
     OrderResponse,
@@ -258,7 +258,7 @@ async def list_orders(
     summary="[Moderator] List all orders with filter",
 )
 async def list_all_orders(
-    user_id: int,
+    user_id: int | None = Query(default=None),
     status_filter: OrderStatusEnum | None = Query(default=None),
     date_from: date | None = Query(default=None),
     date_to: date | None = Query(default=None),

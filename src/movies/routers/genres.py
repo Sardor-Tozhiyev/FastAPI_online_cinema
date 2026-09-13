@@ -2,13 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.accounts.dependencies import require_moderator
-from src.accounts.models import User
-from src.accounts.schemas import MessageResponse
-from src.database import get_db
-from src.movies.models import Genre, MovieGenre
-from src.movies.routers.movies import _list_movies
-from src.movies.schemas import (
+from accounts.dependencies import require_moderator
+from accounts.models import User
+from accounts.schemas import MessageResponse
+from database import get_db
+from movies.models import Genre, MovieGenre
+from movies.routers.movies import _list_movies
+from movies.schemas import (
     GenreResponse,
     GenreWithCountResponse,
     MovieListItemResponse,

@@ -1,11 +1,11 @@
 """Notification helpers for movie comments.
 
-Mirrors `src.accounts.notifications`: synchronous now (logs / sends via
+Mirrors `accounts.notifications`: synchronous now (logs / sends via
 `send_email`), can be swapped for a Celery-dispatched task later without
 changing call sites.
 """
 
-from src.accounts.notifications import send_email
+from accounts.notifications import send_email
 
 
 def send_comment_reply_email(

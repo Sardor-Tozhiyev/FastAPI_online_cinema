@@ -1,13 +1,20 @@
 from types import SimpleNamespace
 
+import pytest
 from httpx import AsyncClient
 
+from config import settings
 from tests.test_cart.conftest import create_movie  # noqa: F401
 from tests.test_movies.conftest import (  # noqa: F401
     certification,
     create_user_headers,
 )
 from tests.test_orders.conftest import add_to_cart  # noqa: F401
+
+
+@pytest.fixture(autouse=True)
+def disable_stripe_webhook_secret(monkeypatch):
+    monkeypatch.setattr(settings, "STRIPE_WEBHOOK_SECRET", "")
 
 
 async def create_pending_order(

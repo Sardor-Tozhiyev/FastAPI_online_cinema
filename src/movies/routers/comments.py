@@ -2,17 +2,17 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.accounts.dependencies import get_current_user
-from src.accounts.models import User
-from src.accounts.schemas import MessageResponse
-from src.database import get_db
-from src.movies.models import Comment, CommentLike, Movie
-from src.movies.notifications import (
+from accounts.dependencies import get_current_user
+from accounts.models import User
+from accounts.schemas import MessageResponse
+from database import get_db
+from movies.models import Comment, CommentLike, Movie
+from movies.notifications import (
     send_comment_like_email,
     send_comment_reply_email,
 )
-from src.movies.routers.movies import _get_movie_or_404
-from src.movies.schemas import CommentCreateRequest, CommentResponse
+from movies.routers.movies import _get_movie_or_404
+from movies.schemas import CommentCreateRequest, CommentResponse
 
 router = APIRouter(prefix="/api/v1/movies", tags=["comments"])
 

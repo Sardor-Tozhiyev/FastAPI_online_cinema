@@ -4,10 +4,10 @@ from typing import TYPE_CHECKING
 from sqlalchemy import ForeignKey, UniqueConstraint, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.database import Base
+from database import Base
 
 if TYPE_CHECKING:
-    from src.movies.models import Movie
+    from movies.models import Movie
 
 
 class Cart(Base):

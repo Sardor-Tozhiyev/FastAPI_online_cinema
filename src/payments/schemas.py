@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, field_validator
@@ -17,12 +16,12 @@ class PaymentItemResponse(BaseModel):
 
     movie_id: int
     name: str
-    price_at_payment: Decimal
+    price_at_payment: float
 
     @field_validator("price_at_payment", mode="before")
     @classmethod
     def _coerce_price_at_payment(cls, value: Any) -> Any:
-        return Decimal(str(value)) if value is not None else value
+        return float(str(value)) if value is not None else value
 
 
 class PaymentResponse(BaseModel):
@@ -31,10 +30,11 @@ class PaymentResponse(BaseModel):
     order_id: int
     created_at: datetime
     status: PaymentStatusEnum
+    amount: float
     external_payment_id: str | None
     items: list[PaymentItemResponse]
 
     @field_validator("amount", mode="before")
     @classmethod
     def _coerce_amount(cls, value: Any) -> Any:
-        return Decimal(str(value)) if value is not None else value
+        return float(str(value)) if value is not None else value

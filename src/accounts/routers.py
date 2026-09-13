@@ -3,8 +3,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.accounts.dependencies import get_current_user, require_admin
-from src.accounts.models import (
+from accounts.dependencies import get_current_user, require_admin
+from accounts.models import (
     ActivationToken,
     PasswordResetToken,
     RefreshToken,
@@ -12,11 +12,11 @@ from src.accounts.models import (
     UserGroup,
     UserGroupEnum,
 )
-from src.accounts.notifications import (
+from accounts.notifications import (
     send_activation_email,
     send_password_reset_email,
 )
-from src.accounts.schemas import (
+from accounts.schemas import (
     AccessTokenResponse,
     ActivationRequest,
     ChangePasswordRequest,
@@ -33,14 +33,14 @@ from src.accounts.schemas import (
     UserRegistrationRequest,
     UserRegistrationResponse,
 )
-from src.accounts.security import (
+from accounts.security import (
     create_access_token,
     create_refresh_token,
     decode_token,
     hash_password,
     verify_password,
 )
-from src.database import get_db
+from database import get_db
 
 router = APIRouter(prefix="/api/v1/accounts", tags=["accounts"])
 

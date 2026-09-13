@@ -23,7 +23,7 @@ async def mark_order_paid(db_session: AsyncSession, order_id: int) -> None:
     """Test-only shortcut: the real payments module isn't built yet, so
     this simulates a successful checkout by flipping the order's status
     directly in the DB."""
-    from src.orders.models import Order, OrderStatusEnum
+    from orders.models import Order, OrderStatusEnum
 
     order = (
         await db_session.execute(select(Order).where(Order.id == order_id))

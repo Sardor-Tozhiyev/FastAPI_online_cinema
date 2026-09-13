@@ -38,7 +38,7 @@ ReDoc: **http://localhost:8000/redoc**
 ```bash
 poetry install
 cp .env.example .env   # adjust DATABASE_URL etc. to point at a local Postgres, or use sqlite for a quick spin
-poetry run uvicorn src.main:app --reload
+poetry run uvicorn main:app --reload
 ```
 
 ### Running tests

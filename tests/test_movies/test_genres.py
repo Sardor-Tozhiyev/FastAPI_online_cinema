@@ -1,8 +1,8 @@
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.accounts.models import UserGroupEnum
-from src.movies.models import Certification
+from accounts.models import UserGroupEnum
+from movies.models import Certification
 from tests.test_movies.conftest import create_user_headers, movie_payload
 
 

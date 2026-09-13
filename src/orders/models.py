@@ -1,12 +1,11 @@
 import enum
 from datetime import datetime, timezone
-from decimal import Decimal
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.database import Base
-from src.movies.models import Movie
+from database import Base
+from movies.models import Movie
 
 
 class OrderStatusEnum(str, enum.Enum):
@@ -33,7 +32,7 @@ class Order(Base):
         nullable=False,
         default=OrderStatusEnum.PENDING,
     )
-    total_amount: Mapped[Decimal] = mapped_column(
+    total_amount: Mapped[float] = mapped_column(
         Numeric(10, 2),
         nullable=True,
     )
@@ -55,7 +54,7 @@ class OrderItem(Base):
         ForeignKey("movies.id", ondelete="CASCADE"),
         nullable=False,
     )
-    price_at_order: Mapped[Decimal] = mapped_column(
+    price_at_order: Mapped[float] = mapped_column(
         Numeric(10, 2),
         nullable=True,
     )

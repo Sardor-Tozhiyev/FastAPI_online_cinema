@@ -2,7 +2,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.accounts.models import ActivationToken, RefreshToken, User
+from accounts.models import ActivationToken, RefreshToken, User
 
 
 async def _register_and_activate(

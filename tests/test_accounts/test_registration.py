@@ -3,7 +3,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.accounts.models import ActivationToken, User
+from accounts.models import ActivationToken, User
 
 
 async def test_register_creates_inactive_user(

@@ -1,14 +1,14 @@
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.accounts.models import UserGroupEnum
-from src.movies.models import Certification
+from accounts.models import UserGroupEnum
+from movies.models import Certification
 from tests.test_orders.conftest import add_to_cart, mark_order_paid
 from tests.test_cart.conftest import create_movie
 from tests.test_movies.conftest import create_user_headers
 
 
-# --- Placing orders ------------------------------------------------------------------
+# --- Placing orders ---------------------------------------
 
 
 async def test_placing_order_with_empty_cart_returns_400(
@@ -132,7 +132,7 @@ async def test_placing_order_with_only_excluded_movies_returns_400(
     assert second.status_code == 400
 
 
-# --- Listing / detail ----------------------------------------------------------------
+# --- Listing / detail -----------------------------------------
 
 
 async def test_list_orders_and_status_filter(
@@ -214,7 +214,7 @@ async def test_get_order_detail_permissions(
     assert missing.status_code == 404
 
 
-# --- Cancellation --------------------------------------------------------------------
+# --- Cancellation -----------------------------------
 
 
 async def test_owner_can_cancel_pending_order(
@@ -313,7 +313,7 @@ async def test_non_owner_cannot_cancel_order(
     assert response.status_code == 403
 
 
-# --- Admin listing ---------------------------------------------------------------------
+# --- Admin listing ------------------------------
 
 
 async def test_admin_listing_requires_moderator(

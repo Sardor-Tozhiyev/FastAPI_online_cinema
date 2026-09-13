@@ -3,13 +3,13 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.accounts.models import (
+from accounts.models import (
     ActivationToken,
     User,
     UserGroup,
     UserGroupEnum,
 )
-from src.movies.models import Certification, Director, Genre, Star
+from movies.models import Certification, Director, Genre, Star
 
 
 async def register_and_activate(

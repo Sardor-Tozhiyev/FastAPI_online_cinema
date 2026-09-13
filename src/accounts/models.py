@@ -5,8 +5,8 @@ from datetime import datetime, timezone, date, timedelta
 from sqlalchemy import Enum, String, Boolean, DateTime, ForeignKey, Date, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.config import settings
-from src.database import Base
+from config import settings
+from database import Base
 
 
 class UserGroupEnum(str, enum.Enum):
