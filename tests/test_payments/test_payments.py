@@ -360,7 +360,7 @@ async def test_admin_payment_listing_filters_by_user_and_status(
     strong_password: str,
     certification: Certification,
     monkeypatch,
-    bypass_webhook_signature
+    bypass_webhook_signature,
 ):
     monkeypatch.setattr(
         "payments.stripe_client.create_refund", lambda **kwargs: None
