@@ -140,6 +140,7 @@ async def test_webhook_marks_order_paid_and_creates_payment(
     db_session: AsyncSession,
     strong_password: str,
     certification: Certification,
+    bypass_webhook_signature,
 ):
     movie_id = await create_movie(
         client, db_session, strong_password, certification.id, "webhook"
@@ -173,6 +174,7 @@ async def test_webhook_is_idempotent_on_redelivery(
     db_session: AsyncSession,
     strong_password: str,
     certification: Certification,
+    bypass_webhook_signature,
 ):
     movie_id = await create_movie(
         client, db_session, strong_password, certification.id, "redelivery"
@@ -194,6 +196,7 @@ async def test_webhook_is_idempotent_on_redelivery(
 
 async def test_webhook_for_unknown_order_is_a_graceful_noop(
     client: AsyncClient,
+    bypass_webhook_signature,
 ):
     response = await client.post(
         "/api/v1/payments/webhook", json=webhook_event(999999)
@@ -218,6 +221,7 @@ async def test_get_payment_detail_permissions(
     db_session: AsyncSession,
     strong_password: str,
     certification: Certification,
+    bypass_webhook_signature,
 ):
     movie_id = await create_movie(
         client, db_session, strong_password, certification.id, "detailperm"
@@ -271,6 +275,7 @@ async def test_moderator_can_refund_payment(
     strong_password: str,
     certification: Certification,
     monkeypatch,
+    bypass_webhook_signature,
 ):
     refund_calls = []
     monkeypatch.setattr(
@@ -326,6 +331,7 @@ async def test_non_moderator_cannot_refund(
     db_session: AsyncSession,
     strong_password: str,
     certification: Certification,
+    bypass_webhook_signature,
 ):
     movie_id = await create_movie(
         client, db_session, strong_password, certification.id, "protectref"
@@ -354,6 +360,7 @@ async def test_admin_payment_listing_filters_by_user_and_status(
     strong_password: str,
     certification: Certification,
     monkeypatch,
+    bypass_webhook_signature
 ):
     monkeypatch.setattr(
         "payments.stripe_client.create_refund", lambda **kwargs: None

@@ -1,5 +1,7 @@
+import json
 from types import SimpleNamespace
 
+import pytest
 from httpx import AsyncClient
 
 # Re-exported so pytest picks up shared fixtures/helpers for this directory.
@@ -30,10 +32,7 @@ def fake_checkout_session(**kwargs) -> SimpleNamespace:
 
 
 def webhook_event(order_id: int, payment_intent: str = "pi_test_123") -> dict:
-    """A minimal `checkout.session.completed` event body. Since tests run
-    with no STRIPE_WEBHOOK_SECRET configured, `stripe_client.
-    construct_webhook_event` trusts this JSON body as-is instead of
-    verifying a signature."""
+    """Return a minimal checkout.session.completed event body."""
     return {
         "type": "checkout.session.completed",
         "data": {
@@ -43,3 +42,14 @@ def webhook_event(order_id: int, payment_intent: str = "pi_test_123") -> dict:
             }
         },
     }
+
+
+@pytest.fixture
+def bypass_webhook_signature(monkeypatch):
+    def construct_webhook_event(payload, sig_header):
+        return json.loads(payload)
+
+    monkeypatch.setattr(
+        "payments.stripe_client.construct_webhook_event",
+        construct_webhook_event,
+    )
