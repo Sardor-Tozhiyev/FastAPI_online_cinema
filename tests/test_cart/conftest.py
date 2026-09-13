@@ -3,10 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.accounts.models import UserGroupEnum
 
-# Re-exported so pytest picks them up as fixtures/helpers for this
-# directory too -- fixtures defined in a sibling package's conftest.py
-# aren't inherited automatically, but importing them into this module's
-# namespace makes pytest recognize them here.
 from tests.test_movies.conftest import (  # noqa: F401
     certification,
     create_user_headers,
