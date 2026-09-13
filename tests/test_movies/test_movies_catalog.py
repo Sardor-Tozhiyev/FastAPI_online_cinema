@@ -24,7 +24,7 @@ async def _moderator_headers(
     return headers
 
 
-# --- Create ------------------------------------------------------------------------
+# --- Create -------------------------------
 
 
 async def test_moderator_can_create_movie_with_relations(
@@ -124,7 +124,7 @@ async def test_create_duplicate_movie_returns_409(
     assert second.status_code == 409
 
 
-# --- Read ------------------------------------------------------------------------
+# --- Read ----------------------------------------
 
 
 async def test_get_movie_detail_and_404(
@@ -151,7 +151,7 @@ async def test_get_movie_detail_and_404(
     assert missing.status_code == 404
 
 
-# --- Update / delete ---------------------------------------------------------------
+# --- Update / delete ----------------------------------
 
 
 async def test_moderator_can_update_movie(
@@ -241,7 +241,8 @@ async def test_moderator_can_delete_movie(
     assert again.status_code == 404
 
 
-# --- Catalog: pagination / filter / search / sort ------------------------------------
+# --- Catalog: pagination / filter / search / sort --------------------------
+
 
 class MovieSeed(TypedDict):
     name: str

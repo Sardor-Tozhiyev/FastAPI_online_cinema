@@ -56,9 +56,7 @@ async def test_add_unknown_movie_returns_404(
     _, headers = await create_user_headers(
         client, db_session, "cart-404@example.com", strong_password
     )
-    response = await client.post(
-        "/api/v1/cart/items/999999", headers=headers
-    )
+    response = await client.post("/api/v1/cart/items/999999", headers=headers)
     assert response.status_code == 404
 
 
@@ -172,7 +170,7 @@ async def test_cart_is_scoped_per_user(
     assert bob_cart.json()["item_count"] == 0
 
 
-# --- Moderator visibility -----------------------------------------------------------
+# --- Moderator visibility ----------------------------
 
 
 async def test_moderator_can_view_another_users_cart(
@@ -238,7 +236,7 @@ async def test_moderator_view_of_unknown_user_returns_404(
     assert response.status_code == 404
 
 
-# --- Delete-movie cart guard ---------------------------------------------------------
+# --- Delete-movie cart guard -----------------------------
 
 
 async def test_deleting_a_movie_in_a_cart_is_blocked_without_force(

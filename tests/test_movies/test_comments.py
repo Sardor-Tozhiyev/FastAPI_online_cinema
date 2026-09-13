@@ -29,7 +29,7 @@ async def _create_movie(
     return response.json()["id"]
 
 
-# --- Creating / listing comments -----------------------------------------------------
+# --- Creating / listing comments -----------------------
 
 
 async def test_create_top_level_comment(
@@ -170,7 +170,7 @@ async def test_reply_to_comment_on_another_movie_returns_400(
     assert response.status_code == 400
 
 
-# --- Deleting comments -----------------------------------------------------------------
+# --- Deleting comments ------------------------------
 
 
 async def test_owner_can_delete_own_comment(
@@ -273,7 +273,7 @@ async def test_delete_unknown_comment_returns_404(
     assert response.status_code == 404
 
 
-# --- Comment likes -----------------------------------------------------------------------
+# --- Comment likes -----------------------------------
 
 
 async def test_like_and_unlike_comment(

@@ -8,7 +8,7 @@ from tests.test_cart.conftest import create_movie
 from tests.test_movies.conftest import create_user_headers
 
 
-# --- Placing orders ------------------------------------------------------------------
+# --- Placing orders ------------------------------------------
 
 
 async def test_placing_order_with_empty_cart_returns_400(
@@ -132,7 +132,7 @@ async def test_placing_order_with_only_excluded_movies_returns_400(
     assert second.status_code == 400
 
 
-# --- Listing / detail ----------------------------------------------------------------
+# --- Listing / detail ------------------------------------------------
 
 
 async def test_list_orders_and_status_filter(
@@ -214,7 +214,7 @@ async def test_get_order_detail_permissions(
     assert missing.status_code == 404
 
 
-# --- Cancellation --------------------------------------------------------------------
+# --- Cancellation -------------------------------------------------
 
 
 async def test_owner_can_cancel_pending_order(
@@ -238,9 +238,7 @@ async def test_owner_can_cancel_pending_order(
     )
     assert response.status_code == 200
 
-    detail = await client.get(
-        f"/api/v1/orders/{order_id}", headers=headers
-    )
+    detail = await client.get(f"/api/v1/orders/{order_id}", headers=headers)
     assert detail.json()["status"] == "canceled"
 
 
@@ -315,7 +313,7 @@ async def test_non_owner_cannot_cancel_order(
     assert response.status_code == 403
 
 
-# --- Admin listing ---------------------------------------------------------------------
+# --- Admin listing --------------------------------------------------------
 
 
 async def test_admin_listing_requires_moderator(
@@ -379,6 +377,4 @@ async def test_admin_listing_filters_by_user_and_status(
         params={"status_filter": "paid"},
         headers=moderator_headers,
     )
-    assert all(
-        item["status"] == "paid" for item in by_status.json()["items"]
-    )
+    assert all(item["status"] == "paid" for item in by_status.json()["items"])
